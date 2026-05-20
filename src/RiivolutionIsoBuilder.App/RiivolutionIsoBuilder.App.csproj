@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RiivolutionIsoBuilder</AssemblyName>
+    <RootNamespace>RiivolutionIsoBuilder</RootNamespace>
+    <ApplicationTitle>Riivolution ISO Builder</ApplicationTitle>
+    <Product>Riivolution ISO Builder</Product>
+  </PropertyGroup>
+</Project>
+

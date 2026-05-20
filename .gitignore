@@ -1,0 +1,17 @@
+bin/
+obj/
+work/
+output/
+!work/.gitkeep
+!output/.gitkeep
+artifacts/
+dist/
+publish/
+*.user
+data/mods/*
+!data/mods/.gitkeep
+games/*.iso
+games/*.wbfs
+games/*.ciso
+games/*.wdf
+games/*.wia

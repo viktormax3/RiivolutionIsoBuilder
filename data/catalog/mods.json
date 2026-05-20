@@ -1,0 +1,107 @@
+﻿{
+  "games": [
+    {
+      "key": "smg1",
+      "displayName": "SMG1",
+      "gameIds": [ "RMGE01", "RMGP01", "RMGJ01" ],
+      "requiredFreeSpaceGb": 8
+    },
+    {
+      "key": "smg2",
+      "displayName": "SMG2",
+      "gameIds": [ "SB4E01", "SB4P01", "SB4J01" ],
+      "requiredFreeSpaceGb": 4
+    }
+  ],
+  "regions": [
+    { "code": "USA", "name": "USA", "idCharacter": "E" },
+    { "code": "PAL", "name": "PAL", "idCharacter": "P" },
+    { "code": "JAP", "name": "JAP", "idCharacter": "J" }
+  ],
+  "mods": [
+    {
+      "id": "KMG",
+      "displayName": "Kaizo Mario Galaxy",
+      "gameKey": "smg1",
+      "archive": "KMG.zip",
+      "extractedFolder": "kmg",
+      "outputIdPrefix": "KMG",
+      "defaultPatch": "None",
+      "unsupportedOutputIds": [ "KMGJ01" ],
+      "patchOverrides": {
+        "KMGE01": "Gct"
+      }
+    },
+    {
+      "id": "TGS",
+      "displayName": "SMG1 The Green Stars",
+      "gameKey": "smg1",
+      "archive": "TGS.zip",
+      "extractedFolder": "tgs",
+      "outputIdPrefix": "TGS",
+      "defaultPatch": "None"
+    },
+    {
+      "id": "NMG",
+      "displayName": "Neo Mario Galaxy",
+      "gameKey": "smg2",
+      "archive": "NMG.zip",
+      "extractedFolder": "nmg",
+      "outputIdPrefix": "NMG",
+      "defaultPatch": "Xml",
+      "patchFile": "NMG.xml",
+      "bannerId": "nmg"
+    },
+    {
+      "id": "M64",
+      "displayName": "SMG64 Holiday Special",
+      "gameKey": "smg2",
+      "archive": "M64.zip",
+      "extractedFolder": "m64",
+      "outputIdPrefix": "M64",
+      "defaultPatch": "Xml",
+      "patchFile": "M64.xml"
+    },
+    {
+      "id": "NGS",
+      "displayName": "SMG2 The New Green Star",
+      "gameKey": "smg2",
+      "archive": "NGS.zip",
+      "extractedFolder": "ngs",
+      "outputIdPrefix": "NGS",
+      "defaultPatch": "None"
+    },
+    {
+      "id": "TLL",
+      "displayName": "SMG2 The Lost Levels",
+      "gameKey": "smg2",
+      "archive": "TLL.zip",
+      "extractedFolder": "tll",
+      "outputIdPrefix": "TLL",
+      "defaultPatch": "Xml",
+      "patchFile": "TLL.xml",
+      "unsupportedOutputIds": [ "TLLJ01" ]
+    },
+    {
+      "id": "MG1",
+      "displayName": "Super Mayro Galaxy",
+      "gameKey": "smg2",
+      "archive": "MG1.zip",
+      "extractedFolder": "mg1",
+      "outputIdPrefix": "MG1",
+      "defaultPatch": "None",
+      "unsupportedOutputIds": [ "MG1J01" ]
+    },
+    {
+      "id": "MG2",
+      "displayName": "Super Mayro Galaxy Twoad",
+      "gameKey": "smg2",
+      "archive": "MG2.zip",
+      "extractedFolder": "mg2",
+      "outputIdPrefix": "MG2",
+      "defaultPatch": "None",
+      "unsupportedOutputIds": [ "MG2J01" ]
+    }
+  ]
+}
+

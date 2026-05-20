@@ -1,0 +1,42 @@
+﻿name: Build Windows Package
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build portable Windows package
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore src/RiivolutionIsoBuilder.App/RiivolutionIsoBuilder.App.csproj --runtime win-x64
+
+      - name: Build
+        run: dotnet build RiivolutionIsoBuilder.sln --configuration Release --no-restore
+
+      - name: Package
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -Configuration Release -OutputRoot artifacts
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: RiivolutionIsoBuilder-win-x64
+          path: artifacts/RiivolutionIsoBuilder-win-x64.zip
+          if-no-files-found: error
+
