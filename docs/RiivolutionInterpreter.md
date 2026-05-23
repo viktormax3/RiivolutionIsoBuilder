@@ -69,7 +69,7 @@ El comando conceptual para `wit DOLPATCH` debe ser:
 wit DOLPATCH <workdir>/sys/main.dol XML=<generated.xml> --source <mod-root>/nmg -o
 ```
 
-`--source` es importante porque `wit DOLPATCH` busca alli los archivos referenciados por `valuefile`.
+`--source` es importante porque `wit DOLPATCH` busca alli los archivos referenciados por `valuefile`. La app pasa la raiz del paquete/mod y genera rutas `valuefile` ya resueltas contra el `root` del XML o del patch.
 
 Nota: `DOLPATCH` puede devolver un codigo no-cero si alguna condicion `original` no coincide. En XML Riivolution esto puede ser normal cuando el mismo patch trae alternativas para regiones/versiones distintas. La app acepta ese caso si `wit` informa que guardo el DOL y no hubo errores duros como `Can't patch`.
 
@@ -91,5 +91,28 @@ La ruta mas general es convertir el XML Riivolution nativo a un plan interno:
 
 La prueba actual ya cubre lectura de folders, savegame, `value` y `valuefile`.
 
-En la GUI, por ahora las opciones se resuelven asi: si un XML tiene opciones y no hay selector detallado, se toma la primera choice de cada option. Esto permite convertir mods simples como NMG. El siguiente paso natural es mostrar esas choices antes de compilar.
+En la GUI, las opciones se muestran antes de compilar. Cada option incluye `Disabled`, porque Riivolution permite desactivar cualquier option. Los defaults se tratan como Riivolution: `default="1"` selecciona la primera choice, `default="0"` o un default ausente significa `Disabled`. Algunos XML usan `index="1"` con el mismo proposito practico; el lector lo acepta como fallback.
+
+Para carpetas y archivos nativos, `create="true"` permite agregar archivos que no existian en el disco extraido. Sin `create`, la app solo reemplaza archivos ya existentes. Esto evita convertir una carpeta de reemplazo parcial en una importacion completa accidental.
+
+## Matriz de compatibilidad Riivolution
+
+La implementacion actual busca ser conservadora cuando una semantica de Riivolution no se puede reproducir perfectamente sobre una imagen ya extraida:
+
+- `root` en `<wiidisc>` y `<patch>`: soportado. Los paths relativos usan el root activo; los paths externos absolutos (`/foo`) se resuelven desde la raiz del paquete/mod.
+- `option/default`: soportado como Riivolution. El default es 1-based; `0` o ausente significa `Disabled`. `index` se acepta como fallback para XML reales que lo usan como default.
+- `param`: soportado en option, choice y referencia de patch. Se usa para paths y `valuefile`.
+- multiples XML: no se fusionan automaticamente como hace Riivolution al cargar todo `/riivolution`; la GUI carga un XML por build.
+- `macro`: pendiente. La documentacion permite clonar opciones por id; aun no se expanden macros.
+- `folder recursive`: soportado. Por defecto es `true`; con `recursive="false"` solo se copian archivos de primer nivel.
+- `folder create`: soportado. Sin `create`, solo se reemplazan archivos existentes.
+- `folder resize` y `length`: parcialmente soportados al escribir archivos destino.
+- `folder disc` vacio o no absoluto: se trata como busqueda por nombre de archivo dentro del filesystem extraido, sin crear archivos nuevos.
+- `file create`: soportado.
+- `file resize`, `offset` y `length`: soportado para escritura parcial o reemplazo sin cambiar tamano cuando aplica.
+- `file disc` no absoluto o vacio: se trata como busqueda por nombre de archivo.
+- `savegame`: no se emula; se cambia el ID6 de salida para separar saves.
+- `memory value` y `valuefile`: soportado via XML generado para `wit DOLPATCH`.
+- `memory original`: se filtra contra el `main.dol` extraido antes de llamar a `wit`.
+- `memory ocarina="true"` y `search="true"`: se conservan como entradas de memoria normales si tienen `offset/value`, pero la semantica especial de busqueda de Riivolution no esta emulada por la app. Si un mod depende de esa semantica, conviene usar GCT o un XML preprocesado.
 

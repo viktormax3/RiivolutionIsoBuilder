@@ -41,7 +41,7 @@ public sealed record RiivolutionSaveGame(string External, bool CloneSave);
 
 public sealed record RiivolutionFileMapping(string External, string Disc, bool Resize, bool Create, string Offset, string Length);
 
-public sealed record RiivolutionFolderMapping(string External, string Disc, bool Create);
+public sealed record RiivolutionFolderMapping(string External, string Disc, bool Resize, bool Create, bool Recursive, string Length);
 
 public sealed record RiivolutionMemoryPatch(
     string Tag,

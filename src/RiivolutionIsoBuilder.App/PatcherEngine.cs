@@ -72,12 +72,13 @@ public sealed class PatcherEngine
             .ToList();
     }
 
-    public NativeRiivolutionMod LoadNativeRiivolutionMod(string xmlFile, GameImage game)
+    public NativeRiivolutionMod LoadNativeRiivolutionMod(string xmlFile, GameImage game, IReadOnlyList<int?> choiceIndexes, RiivolutionDocument? document = null)
     {
-        var document = RiivolutionPatchReader.ReadDocument(xmlFile, game.Region.Name);
-        var plan = RiivolutionPatchPlanner.CreateDefaultPlan(document, game.GameId);
-        var sourceRoot = ResolveNativeSourceRoot(xmlFile, plan);
-        return new NativeRiivolutionMod(xmlFile, sourceRoot, document, plan);
+        document ??= RiivolutionPatchReader.ReadDocument(xmlFile, game.Region.Name);
+        var plan = RiivolutionPatchPlanner.CreatePlan(document, game.GameId, choiceIndexes);
+        var sourceRoot = ResolveNativeSourceRoot(xmlFile);
+        var choiceSummary = CreateChoiceSummary(document, choiceIndexes);
+        return new NativeRiivolutionMod(xmlFile, sourceRoot, document, plan, choiceSummary);
     }
 
     public string SuggestNativeOutputId(NativeRiivolutionMod mod, GameImage game)
@@ -170,6 +171,19 @@ public sealed class PatcherEngine
             Path.Combine(outputFolder, $"{outputId}.{options.Extension}"));
     }
 
+    public GctBuildPlan CreateGctPlan(GameImage game, ManualGctPatch patch, string outputId, BuildOptions options)
+    {
+        outputId = NormalizeOutputId(outputId);
+        var outputFolder = Path.Combine(paths.OutputDirectory, $"{patch.DisplayName} [{outputId}]");
+        return new GctBuildPlan(
+            game,
+            patch,
+            outputId,
+            outputId[..4],
+            Path.Combine(paths.TempDirectory, $"{outputId}-FST"),
+            Path.Combine(outputFolder, $"{outputId}.{options.Extension}"));
+    }
+
     public async Task BuildNativeAsync(NativeBuildPlan plan, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(plan.OutputFile)!);
@@ -199,6 +213,34 @@ public sealed class PatcherEngine
         log($"Listo: {plan.OutputFile}");
     }
 
+    public async Task BuildGctAsync(GctBuildPlan plan, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(plan.OutputFile)!);
+        VerifyFreeSpace(plan.Game.Game);
+        DeleteIfExists(plan.WorkDirectory);
+        if (File.Exists(plan.OutputFile))
+        {
+            File.Delete(plan.OutputFile);
+        }
+
+        log("Extrayendo datos del juego con wit...");
+        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"X {Quote(plan.Game.Path)} -PqD {Quote(plan.WorkDirectory)} --psel data", cancellationToken))
+            .EnsureSuccess("No se pudo extraer la imagen del juego.");
+
+        await ApplyGctPatchAsync(Path.Combine(plan.WorkDirectory, "sys", "main.dol"), plan.Patch.PatchFile, cancellationToken);
+
+        log("Creando imagen modificada...");
+        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"CP {Quote(plan.WorkDirectory)} -PqD {Quote(plan.OutputFile)}", cancellationToken))
+            .EnsureSuccess("No se pudo crear la imagen modificada.");
+
+        log("Editando ID, TMD y nombre interno...");
+        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"ED --id {plan.OutputId} --name {Quote(plan.Patch.DisplayName)} --tt-id {plan.Tmd} {Quote(plan.OutputFile)}", cancellationToken))
+            .EnsureSuccess("No se pudo editar la metadata de salida.");
+
+        DeleteIfExists(paths.TempDirectory);
+        log($"Listo: {plan.OutputFile}");
+    }
+
     private async Task ApplyPatchAsync(BuildPlan plan, CancellationToken cancellationToken)
     {
         if (plan.PatchKind == PatchKind.None)
@@ -209,15 +251,7 @@ public sealed class PatcherEngine
         var mainDol = Path.Combine(plan.WorkDirectory, "sys", "main.dol");
         if (plan.PatchKind == PatchKind.Gct)
         {
-            var patchFile = plan.PatchFile;
-            if (!File.Exists(patchFile))
-            {
-                throw new FileNotFoundException("No se encontro el parche GCT.", patchFile);
-            }
-
-            log("Aplicando parche GCT con wstrt...");
-            (await runner.RunAsync(paths.ResolveToolPath("wstrt.exe"), $"patch {Quote(mainDol)} --add-sect {Quote(patchFile)} -oPq", cancellationToken))
-                .EnsureSuccess("No se pudo aplicar el parche GCT.");
+            await ApplyGctPatchAsync(mainDol, plan.PatchFile, cancellationToken);
             return;
         }
 
@@ -278,8 +312,8 @@ public sealed class PatcherEngine
         {
             foreach (var folder in patch.Folders)
             {
-                var source = Path.Combine(mod.SourceRoot, RiivolutionPatchPlanner.ResolvePath(folder.External, mod.Plan.Parameters));
-                var destination = Path.Combine(filesDir, RiivolutionPatchPlanner.ResolvePath(folder.Disc, mod.Plan.Parameters));
+                var source = ResolveExternalPath(mod.SourceRoot, patch.Root, folder.External, mod.Plan.Parameters);
+                var destination = ResolveDiscPath(filesDir, folder.Disc, mod.Plan.Parameters);
                 if (!Directory.Exists(source))
                 {
                     log($"Carpeta no encontrada, se omite: {source}");
@@ -287,21 +321,20 @@ public sealed class PatcherEngine
                 }
 
                 log($"Copiando carpeta Riivolution: {folder.External} -> {folder.Disc}");
-                CopyDirectory(source, destination);
+                CopyNativeDirectory(source, destination, filesDir, folder);
             }
 
             foreach (var file in patch.Files)
             {
-                var source = Path.Combine(mod.SourceRoot, RiivolutionPatchPlanner.ResolvePath(file.External, mod.Plan.Parameters));
-                var destination = Path.Combine(filesDir, RiivolutionPatchPlanner.ResolvePath(file.Disc, mod.Plan.Parameters));
+                var source = ResolveExternalPath(mod.SourceRoot, patch.Root, file.External, mod.Plan.Parameters);
+                var destination = ResolveDiscPath(filesDir, file.Disc, mod.Plan.Parameters);
                 if (!File.Exists(source))
                 {
                     log($"Archivo no encontrado, se omite: {source}");
                     continue;
                 }
 
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                File.Copy(source, destination, true);
+                CopyNativeFile(source, destination, filesDir, file);
             }
         }
     }
@@ -327,6 +360,18 @@ public sealed class PatcherEngine
             .EnsureDolPatchSuccess("No se pudieron aplicar los parches Riivolution.");
     }
 
+    private async Task ApplyGctPatchAsync(string mainDol, string patchFile, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(patchFile))
+        {
+            throw new FileNotFoundException("No se encontro el parche GCT.", patchFile);
+        }
+
+        log("Aplicando parche GCT con wstrt...");
+        (await runner.RunAsync(paths.ResolveToolPath("wstrt.exe"), $"patch {Quote(mainDol)} --add-sect {Quote(patchFile)} -oPq", cancellationToken))
+            .EnsureSuccess("No se pudo aplicar el parche GCT.");
+    }
+
     private void VerifyFreeSpace(GameDefinition game)
     {
         var root = Path.GetPathRoot(paths.RootDirectory)!;
@@ -340,23 +385,264 @@ public sealed class PatcherEngine
 
     private static void CopyDirectory(string source, string destination)
     {
+        CopyDirectory(source, destination, createMissing: true);
+    }
+
+    private static void CopyDirectory(string source, string destination, bool createMissing)
+    {
         if (!Directory.Exists(source))
         {
             throw new DirectoryNotFoundException($"No se encontro la carpeta descomprimida del mod: {source}");
         }
 
-        Directory.CreateDirectory(destination);
+        if (createMissing)
+        {
+            Directory.CreateDirectory(destination);
+        }
+        else if (!Directory.Exists(destination))
+        {
+            return;
+        }
+
         foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
         {
-            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
+            var targetDirectory = Path.Combine(destination, Path.GetRelativePath(source, directory));
+            if (createMissing)
+            {
+                Directory.CreateDirectory(targetDirectory);
+            }
         }
 
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
             var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+            if (!createMissing && !File.Exists(target))
+            {
+                continue;
+            }
+
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target, true);
         }
+    }
+
+    private static void CopyNativeFile(string source, string destination, bool createMissing)
+    {
+        if (!createMissing && !File.Exists(destination))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination, true);
+    }
+
+    private void CopyNativeFile(string source, string destination, string filesRoot, RiivolutionFileMapping file)
+    {
+        var targets = ResolveFileTargets(source, destination, filesRoot, file).ToList();
+        if (targets.Count == 0)
+        {
+            log($"Destino no encontrado, se omite archivo Riivolution: {file.Disc}");
+            return;
+        }
+
+        foreach (var target in targets)
+        {
+            CopyNativeFileWithPatchAttributes(source, target, file);
+        }
+    }
+
+    private void CopyNativeDirectory(string source, string destination, string filesRoot, RiivolutionFolderMapping folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder.Disc) || !folder.Disc.StartsWith('/') && !folder.Disc.StartsWith('\\'))
+        {
+            CopyNativeDirectoryByFilenameSearch(source, filesRoot, folder);
+            return;
+        }
+
+        var targets = ResolveRootedFolderTargets(destination, folder).ToList();
+        if (targets.Count == 0)
+        {
+            log($"Destino no encontrado, se omite carpeta Riivolution: {folder.Disc}");
+            return;
+        }
+
+        foreach (var target in targets)
+        {
+            CopyNativeDirectoryWithPatchAttributes(source, target, folder);
+        }
+    }
+
+    private static void CopyNativeDirectoryByFilenameSearch(string source, string filesRoot, RiivolutionFolderMapping folder)
+    {
+        var files = Directory.EnumerateFiles(
+            source,
+            "*",
+            folder.Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+
+        foreach (var sourceFile in files)
+        {
+            foreach (var target in FindFilesByName(filesRoot, Path.GetFileName(sourceFile)))
+            {
+                var file = new RiivolutionFileMapping(sourceFile, target, folder.Resize, false, "", folder.Length);
+                CopyNativeFileWithPatchAttributes(sourceFile, target, file);
+            }
+        }
+    }
+
+    private static void CopyNativeDirectoryWithPatchAttributes(string source, string destination, RiivolutionFolderMapping folder)
+    {
+        var files = Directory.EnumerateFiles(
+            source,
+            "*",
+            folder.Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+
+        if (folder.Create)
+        {
+            Directory.CreateDirectory(destination);
+        }
+        else if (!Directory.Exists(destination))
+        {
+            return;
+        }
+
+        foreach (var sourceFile in files)
+        {
+            var relativePath = Path.GetRelativePath(source, sourceFile);
+            var target = Path.Combine(destination, relativePath);
+            if (!folder.Create && !File.Exists(target))
+            {
+                continue;
+            }
+
+            var file = new RiivolutionFileMapping(sourceFile, target, folder.Resize, folder.Create, "", folder.Length);
+            CopyNativeFileWithPatchAttributes(sourceFile, target, file);
+        }
+    }
+
+    private static void CopyNativeFileWithPatchAttributes(string source, string destination, RiivolutionFileMapping file)
+    {
+        var offset = ParseOptionalInteger(file.Offset);
+        var length = ParseOptionalInteger(file.Length);
+        var hasPartialPatch = offset is not null || length is not null || !file.Resize;
+
+        if (!hasPartialPatch)
+        {
+            CopyNativeFile(source, destination, file.Create);
+            return;
+        }
+
+        if (!File.Exists(destination))
+        {
+            if (!file.Create)
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            using (var created = File.Create(destination))
+            {
+                if (offset is > 0)
+                {
+                    created.SetLength(offset.Value);
+                }
+            }
+        }
+
+        var sourceBytes = File.ReadAllBytes(source);
+        var writeLength = length is > 0 ? Math.Min(length.Value, sourceBytes.Length) : sourceBytes.Length;
+        using var stream = new FileStream(destination, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        stream.Position = offset ?? 0;
+        if (!file.Resize && stream.Position + writeLength > stream.Length)
+        {
+            writeLength = (int)Math.Max(0, stream.Length - stream.Position);
+        }
+
+        stream.Write(sourceBytes, 0, writeLength);
+        if (file.Resize && length is null && offset is null)
+        {
+            stream.SetLength(sourceBytes.Length);
+        }
+    }
+
+    private static IEnumerable<string> ResolveFileTargets(string source, string destination, string filesRoot, RiivolutionFileMapping file)
+    {
+        if (string.IsNullOrWhiteSpace(file.Disc))
+        {
+            foreach (var match in FindFilesByName(filesRoot, Path.GetFileName(source)))
+            {
+                yield return match;
+            }
+
+            yield break;
+        }
+
+        if (!file.Disc.StartsWith('/') && !file.Disc.StartsWith('\\'))
+        {
+            foreach (var match in FindFilesByName(filesRoot, Path.GetFileName(file.Disc)))
+            {
+                yield return match;
+            }
+
+            yield break;
+        }
+
+        if (file.Create || File.Exists(destination))
+        {
+            yield return destination;
+        }
+    }
+
+    private static IEnumerable<string> ResolveRootedFolderTargets(string destination, RiivolutionFolderMapping folder)
+    {
+        if (folder.Create || Directory.Exists(destination))
+        {
+            yield return destination;
+        }
+    }
+
+    private static IEnumerable<string> FindFilesByName(string root, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) || !Directory.Exists(root))
+        {
+            yield break;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(root, fileName, SearchOption.AllDirectories))
+        {
+            if (Path.GetFileName(file).Equals(fileName, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return file;
+            }
+        }
+    }
+
+    private static int? ParseOptionalInteger(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+            ? Convert.ToInt32(value[2..], 16)
+            : int.Parse(value);
+    }
+
+    private static string ResolveExternalPath(string sourceRoot, string patchRoot, string externalPath, IReadOnlyDictionary<string, string> parameters)
+    {
+        var resolvedExternal = RiivolutionPatchPlanner.ResolvePath(externalPath, parameters);
+        if (externalPath.StartsWith('/') || externalPath.StartsWith('\\'))
+        {
+            return Path.Combine(sourceRoot, resolvedExternal);
+        }
+
+        return Path.Combine(sourceRoot, RiivolutionPatchPlanner.ResolvePath(patchRoot, parameters), resolvedExternal);
+    }
+
+    private static string ResolveDiscPath(string filesRoot, string discPath, IReadOnlyDictionary<string, string> parameters)
+    {
+        return Path.Combine(filesRoot, RiivolutionPatchPlanner.ResolvePath(discPath, parameters));
     }
 
     private static void DeleteIfExists(string path)
@@ -483,12 +769,46 @@ public sealed class PatcherEngine
         };
     }
 
-    private static string ResolveNativeSourceRoot(string xmlFile, RiivolutionPlan plan)
+    private static string ResolveNativeSourceRoot(string xmlFile)
     {
         var xmlDirectory = Path.GetDirectoryName(xmlFile)!;
-        var modRoot = Directory.GetParent(xmlDirectory)?.FullName ?? xmlDirectory;
-        var patchRoot = plan.ActivePatches.FirstOrDefault()?.Root ?? "";
-        return Path.Combine(modRoot, patchRoot.Trim('/', '\\').Replace('/', Path.DirectorySeparatorChar));
+        return Directory.GetParent(xmlDirectory)?.FullName ?? xmlDirectory;
+    }
+
+    private static string CreateChoiceSummary(RiivolutionDocument document, IReadOnlyList<int?> choiceIndexes)
+    {
+        var parts = new List<string>();
+        var index = 0;
+        foreach (var option in document.Sections.SelectMany(section => section.Options))
+        {
+            var choiceIndex = index < choiceIndexes.Count && choiceIndexes[index] is { } selected
+                ? selected
+                : option.DefaultChoice > 0 ? option.DefaultChoice - 1 : -1;
+            index++;
+            var optionName = string.IsNullOrWhiteSpace(option.Name) ? option.Id : option.Name;
+            if (choiceIndex < 0)
+            {
+                if (!string.IsNullOrWhiteSpace(optionName))
+                {
+                    parts.Add($"{optionName}: Disabled");
+                }
+
+                continue;
+            }
+
+            if (choiceIndex >= option.Choices.Count)
+            {
+                continue;
+            }
+
+            var choiceName = option.Choices[choiceIndex].Name;
+            if (!string.IsNullOrWhiteSpace(optionName) && !string.IsNullOrWhiteSpace(choiceName))
+            {
+                parts.Add($"{optionName}: {choiceName}");
+            }
+        }
+
+        return string.Join("; ", parts);
     }
 
     private static string NormalizeOutputId(string outputId)

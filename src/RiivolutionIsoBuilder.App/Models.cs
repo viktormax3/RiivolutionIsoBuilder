@@ -70,7 +70,8 @@ public sealed record NativeRiivolutionMod(
     string XmlFile,
     string SourceRoot,
     RiivolutionDocument Document,
-    RiivolutionPlan Plan)
+    RiivolutionPlan Plan,
+    string ChoiceSummary)
 {
     public string DisplayName
     {
@@ -84,12 +85,22 @@ public sealed record NativeRiivolutionMod(
     public string ShortName => Document.DisplayName;
 }
 
+public sealed record ManualGctPatch(string PatchFile, string DisplayName);
+
 public sealed record NativeBuildPlan(
     GameImage Game,
     NativeRiivolutionMod Mod,
     string OutputId,
     string Tmd,
     string InternalName,
+    string WorkDirectory,
+    string OutputFile);
+
+public sealed record GctBuildPlan(
+    GameImage Game,
+    ManualGctPatch Patch,
+    string OutputId,
+    string Tmd,
     string WorkDirectory,
     string OutputFile);
 

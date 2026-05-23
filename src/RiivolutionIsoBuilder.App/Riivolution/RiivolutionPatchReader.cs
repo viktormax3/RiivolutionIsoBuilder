@@ -30,7 +30,7 @@ public static class RiivolutionPatchReader
         var patches = document
             .Descendants("patch")
             .Where(IsPatchDefinition)
-            .Select(patch => ReadPatch(patch, regionName))
+            .Select(patch => ReadPatch(patch, regionName, root))
             .ToList();
         var displayName = ResolveDisplayName(xmlFile, document, sections, patches);
 
@@ -94,7 +94,7 @@ public static class RiivolutionPatchReader
         return new RiivolutionOption(
             (string?)option.Attribute("id") ?? "",
             (string?)option.Attribute("name") ?? "",
-            ParseInt((string?)option.Attribute("default")),
+            ParseInt((string?)option.Attribute("default") ?? (string?)option.Attribute("index")),
             ReadParams(option),
             option.Elements("choice").Select(ReadChoice).ToList());
     }
@@ -110,10 +110,10 @@ public static class RiivolutionPatchReader
                 .ToList());
     }
 
-    private static RiivolutionPatch ReadPatch(XElement patch, string regionName)
+    private static RiivolutionPatch ReadPatch(XElement patch, string regionName, string documentRoot)
     {
         var id = (string?)patch.Attribute("id") ?? "";
-        var root = (string?)patch.Attribute("root") ?? "";
+        var root = (string?)patch.Attribute("root") ?? documentRoot;
         var saveGame = patch.Elements("savegame")
             .Select(element => new RiivolutionSaveGame(
                 (string?)element.Attribute("external") ?? "",
@@ -132,7 +132,10 @@ public static class RiivolutionPatchReader
             .Select(element => new RiivolutionFolderMapping(
                 (string?)element.Attribute("external") ?? "",
                 (string?)element.Attribute("disc") ?? "",
-                ParseBool((string?)element.Attribute("create"))))
+                ParseBool((string?)element.Attribute("resize"), defaultValue: true),
+                ParseBool((string?)element.Attribute("create")),
+                ParseBool((string?)element.Attribute("recursive"), defaultValue: true),
+                (string?)element.Attribute("length") ?? ""))
             .ToList();
         var memoryPatches = patch
             .Descendants()

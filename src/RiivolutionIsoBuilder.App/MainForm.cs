@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using RiivolutionIsoBuilder.Riivolution;
 
 namespace RiivolutionIsoBuilder;
 
@@ -16,6 +17,7 @@ public sealed class MainForm : Form
     private readonly Button scanButton = new();
     private readonly Button browseButton = new();
     private readonly Button xmlButton = new();
+    private readonly Button gctButton = new();
     private readonly Button buildButton = new();
     private readonly TextBox logBox = new();
     private CancellationTokenSource? buildCts;
@@ -118,7 +120,7 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
+            WrapContents = true,
             Margin = new Padding(0, 22, 0, 0)
         };
         controls.Controls.Add(buttonPanel, 2, 1);
@@ -138,6 +140,11 @@ public sealed class MainForm : Form
         StyleButton(xmlButton, Color.FromArgb(65, 78, 96), Color.White);
         xmlButton.Click += async (_, _) => await BrowseRiivolutionXmlAsync();
         buttonPanel.Controls.Add(xmlButton);
+
+        gctButton.Text = "Elegir GCT";
+        StyleButton(gctButton, Color.FromArgb(65, 78, 96), Color.White);
+        gctButton.Click += async (_, _) => await BrowseGctAsync();
+        buttonPanel.Controls.Add(gctButton);
 
         buildButton.Text = "Crear mod";
         StyleButton(buildButton, Color.FromArgb(23, 132, 92), Color.White);
@@ -299,6 +306,12 @@ public sealed class MainForm : Form
                 AppendLog($"Preparando XML Riivolution {nativeMod.DisplayName} para {nativePlan.OutputId}...");
                 await engine.BuildNativeAsync(nativePlan, token);
             }
+            else if (modsCombo.SelectedItem is ManualGctPatch gctPatch)
+            {
+                var gctPlan = engine.CreateGctPlan(game, gctPatch, outputIdBox.Text, options);
+                AppendLog($"Preparando GCT {gctPatch.DisplayName} para {gctPlan.OutputId}...");
+                await engine.BuildGctAsync(gctPlan, token);
+            }
             else if (modsCombo.SelectedItem is ModDefinition mod)
             {
                 var plan = engine.CreatePlan(game, mod, options);
@@ -333,12 +346,56 @@ public sealed class MainForm : Form
 
         await RunUiTaskAsync(token =>
         {
-            var mod = engine.LoadNativeRiivolutionMod(dialog.FileName, game);
+            var document = RiivolutionPatchReader.ReadDocument(dialog.FileName, game.Region.Name);
+            var choices = PromptRiivolutionChoices(document);
+            if (choices is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            var mod = engine.LoadNativeRiivolutionMod(dialog.FileName, game, choices, document);
             modsCombo.Items.Add(mod);
             modsCombo.SelectedItem = mod;
             outputIdBox.Text = engine.SuggestNativeOutputId(mod, game);
             AppendLog($"XML cargado: {mod.ShortName} - {dialog.FileName}");
+            if (!string.IsNullOrWhiteSpace(mod.ChoiceSummary))
+            {
+                AppendLog($"Opciones XML: {mod.ChoiceSummary}");
+            }
+
             AppendLog($"Patches activos: {string.Join(", ", mod.Plan.ActivePatches.Select(patch => patch.Id))}");
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task BrowseGctAsync()
+    {
+        if (gamesCombo.SelectedItem is not GameImage game)
+        {
+            MessageBox.Show(this, "Selecciona un juego antes de cargar un GCT.", "Faltan datos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new OpenFileDialog
+        {
+            Title = "Seleccionar parche GCT",
+            Filter = "Ocarina GCT|*.gct|Todos los archivos|*.*",
+            CheckFileExists = true
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        await RunUiTaskAsync(_ =>
+        {
+            var displayName = Path.GetFileNameWithoutExtension(dialog.FileName);
+            var patch = new ManualGctPatch(dialog.FileName, displayName);
+            modsCombo.Items.Add(patch);
+            modsCombo.SelectedItem = patch;
+            outputIdBox.Text = SuggestPatchOutputId(displayName, game);
+            AppendLog($"GCT cargado: {displayName} - {dialog.FileName}");
             return Task.CompletedTask;
         });
     }
@@ -381,10 +438,124 @@ public sealed class MainForm : Form
             return;
         }
 
+        if (modsCombo.SelectedItem is ManualGctPatch gctPatch)
+        {
+            outputIdBox.Text = SuggestPatchOutputId(gctPatch.DisplayName, game);
+            return;
+        }
+
         if (modsCombo.SelectedItem is ModDefinition mod)
         {
             outputIdBox.Text = $"{mod.OutputIdPrefix ?? mod.Id}{game.GameId[3..6]}".ToUpperInvariant();
         }
+    }
+
+    private IReadOnlyList<int?>? PromptRiivolutionChoices(RiivolutionDocument document)
+    {
+        var options = document.Sections.SelectMany(section => section.Options).ToList();
+        if (options.Count == 0)
+        {
+            return [];
+        }
+
+        using var dialog = new Form
+        {
+            Text = $"Opciones Riivolution - {document.DisplayName}",
+            StartPosition = FormStartPosition.CenterParent,
+            MinimumSize = new Size(560, 360),
+            Size = new Size(680, 520),
+            Font = Font
+        };
+
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(16)
+        };
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        dialog.Controls.Add(root);
+
+        var list = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 2,
+            Padding = new Padding(0, 0, 0, 12)
+        };
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+
+        var scroll = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true
+        };
+        scroll.Controls.Add(list);
+        root.Controls.Add(scroll, 0, 0);
+
+        var combos = new List<ComboBox>();
+        foreach (var option in options)
+        {
+            var row = list.RowCount++;
+            list.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            var label = new Label
+            {
+                Text = string.IsNullOrWhiteSpace(option.Name) ? option.Id : option.Name,
+                AutoSize = true,
+                Margin = new Padding(0, 8, 12, 4)
+            };
+            var combo = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Top,
+                Margin = new Padding(0, 4, 0, 4)
+            };
+            combo.Items.Add("Disabled");
+            foreach (var choice in option.Choices)
+            {
+                combo.Items.Add(choice.Name);
+            }
+
+            if (combo.Items.Count > 0)
+            {
+                var defaultIndex = option.DefaultChoice;
+                combo.SelectedIndex = defaultIndex >= 0 && defaultIndex < combo.Items.Count ? defaultIndex : 0;
+            }
+
+            combos.Add(combo);
+            list.Controls.Add(label, 0, row);
+            list.Controls.Add(combo, 1, row);
+        }
+
+        var buttons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Right,
+            AutoSize = true,
+            FlowDirection = FlowDirection.LeftToRight
+        };
+        var ok = new Button { Text = "Aceptar", DialogResult = DialogResult.OK, Width = 110, Height = 32 };
+        var cancel = new Button { Text = "Cancelar", DialogResult = DialogResult.Cancel, Width = 110, Height = 32 };
+        buttons.Controls.Add(ok);
+        buttons.Controls.Add(cancel);
+        root.Controls.Add(buttons, 0, 1);
+        dialog.AcceptButton = ok;
+        dialog.CancelButton = cancel;
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return null;
+        }
+
+        return combos.Select(combo => (int?)(combo.SelectedIndex - 1)).ToList();
+    }
+
+    private static string SuggestPatchOutputId(string name, GameImage game)
+    {
+        var prefix = new string(name.Where(char.IsLetterOrDigit).Take(3).ToArray()).ToUpperInvariant().PadRight(3, 'G');
+        return $"{prefix}{game.GameId[3..6]}";
     }
 
     private async Task RunUiTaskAsync(Func<CancellationToken, Task> task)
@@ -417,6 +588,7 @@ public sealed class MainForm : Form
         scanButton.Enabled = !busy;
         browseButton.Enabled = !busy;
         xmlButton.Enabled = !busy;
+        gctButton.Enabled = !busy;
         buildButton.Enabled = !busy;
         gamesCombo.Enabled = !busy;
         modsCombo.Enabled = !busy;

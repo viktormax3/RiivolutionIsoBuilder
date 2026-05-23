@@ -6,6 +6,8 @@ on:
       - master
       - main
       - develop
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -24,7 +26,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore src/RiivolutionIsoBuilder.App/RiivolutionIsoBuilder.App.csproj --runtime win-x64
+        run: dotnet restore RiivolutionIsoBuilder.sln --runtime win-x64
 
       - name: Build
         run: dotnet build RiivolutionIsoBuilder.sln --configuration Release --no-restore

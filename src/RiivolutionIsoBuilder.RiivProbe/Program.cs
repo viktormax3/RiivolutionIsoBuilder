@@ -46,7 +46,7 @@ foreach (var patch in plan.ActivePatches)
     Console.WriteLine($"  Folders: {patch.Folders.Count}");
     foreach (var folder in patch.Folders)
     {
-        Console.WriteLine($"    {folder.External} -> {folder.Disc} create={folder.Create}");
+        Console.WriteLine($"    {folder.External} -> {folder.Disc} create={folder.Create} recursive={folder.Recursive} resize={folder.Resize} length={folder.Length}");
     }
 
     Console.WriteLine($"  Memory patches: {patch.MemoryPatches.Count}");
