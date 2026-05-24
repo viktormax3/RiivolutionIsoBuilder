@@ -12,6 +12,13 @@
     <AndroidPackageFormats>apk</AndroidPackageFormats>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishTrimmed>false</PublishTrimmed>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+    <AndroidLinkMode>None</AndroidLinkMode>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia.Android" Version="11.3.16" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.16" />

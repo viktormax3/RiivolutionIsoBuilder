@@ -1,6 +1,8 @@
 using Android.App;
 using Android.Content.PM;
 using Android.OS;
+using Android.Runtime;
+using Android.Util;
 using Avalonia;
 using Avalonia.Android;
 using RiivolutionIsoBuilder.UI;
@@ -17,9 +19,24 @@ namespace RiivolutionIsoBuilder.Android;
         | ConfigChanges.KeyboardHidden)]
 public sealed class MainActivity : AvaloniaMainActivity<App>
 {
+    private const string LogTag = "RiivolutionIsoBuilder";
+
     protected override void OnCreate(Bundle? savedInstanceState)
     {
-        BootstrapBundledData();
+        RegisterExceptionLogging();
+
+        var root = GetAppRootDirectory();
+        System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_ROOT", root);
+
+        try
+        {
+            BootstrapBundledData(root);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(LogTag, ex.ToString());
+        }
+
         base.OnCreate(savedInstanceState);
     }
 
@@ -31,12 +48,44 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
             .LogToTrace();
     }
 
-    private void BootstrapBundledData()
+    private static void RegisterExceptionLogging()
     {
-        var root = Path.Combine(
-            System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-            "RiivolutionIsoBuilder");
+        AppDomain.CurrentDomain.UnhandledException -= OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        AndroidEnvironment.UnhandledExceptionRaiser -= OnAndroidUnhandledException;
+        AndroidEnvironment.UnhandledExceptionRaiser += OnAndroidUnhandledException;
+    }
 
+    private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs args)
+    {
+        Log.Error(LogTag, args.ExceptionObject?.ToString() ?? "Unhandled exception");
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs args)
+    {
+        Log.Error(LogTag, args.Exception.ToString());
+    }
+
+    private static void OnAndroidUnhandledException(object? sender, RaiseThrowableEventArgs args)
+    {
+        Log.Error(LogTag, args.Exception.ToString());
+    }
+
+    private string GetAppRootDirectory()
+    {
+        var baseDirectory = FilesDir?.AbsolutePath;
+        if (string.IsNullOrWhiteSpace(baseDirectory))
+        {
+            baseDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+        }
+
+        return Path.Combine(baseDirectory, "RiivolutionIsoBuilder");
+    }
+
+    private void BootstrapBundledData(string root)
+    {
         CopyAssetDirectory("data", Path.Combine(root, "data"));
         MarkExecutable(Path.Combine(root, "data", "tools", "android-arm64", "wit"));
         MarkExecutable(Path.Combine(root, "data", "tools", "android-arm64", "wstrt"));
@@ -67,21 +116,35 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
     {
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 
-        if (File.Exists(destinationPath))
+        if (File.Exists(destinationPath) && new FileInfo(destinationPath).Length > 0)
         {
             return;
         }
 
-        using var source = Assets!.Open(assetPath);
-        using var destination = File.Create(destinationPath);
-        source.CopyTo(destination);
+        try
+        {
+            using var source = Assets!.Open(assetPath);
+            using var destination = File.Create(destinationPath);
+            source.CopyTo(destination);
+        }
+        catch (FileNotFoundException)
+        {
+            Log.Warn(LogTag, $"Skipping asset that is not a file: {assetPath}");
+        }
     }
 
     private static void MarkExecutable(string path)
     {
         if (File.Exists(path))
         {
-            _ = new Java.IO.File(path).SetExecutable(true, false);
+            try
+            {
+                _ = new Java.IO.File(path).SetExecutable(true, false);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn(LogTag, $"Could not mark executable '{path}': {ex}");
+            }
         }
     }
 }
