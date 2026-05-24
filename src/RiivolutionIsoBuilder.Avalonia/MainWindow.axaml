@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RiivolutionIsoBuilder.Avalonia.MainWindow"
+        Title="Riivolution ISO Builder"
+        Width="1120"
+        Height="740"
+        MinWidth="900"
+        MinHeight="620"
+        Background="#EEF1F5">
+  <Grid RowDefinitions="Auto,Auto,*" Margin="20">
+    <Border Grid.Row="0" Background="#1F2A38" Padding="18,16" Margin="0,0,0,14">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Riivolution ISO Builder" FontSize="26" FontWeight="Bold" Foreground="White" />
+        <TextBlock x:Name="StatusText" Text="Starting..." Foreground="#C4CFDC" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="1" Background="White" Padding="16" Margin="0,0,0,12">
+      <Grid ColumnDefinitions="2*,2*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
+          <TextBlock Text="Detected game" FontWeight="SemiBold" Foreground="#465261" />
+          <ComboBox x:Name="GamesCombo" MinHeight="34" SelectionChanged="GamesCombo_OnSelectionChanged">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding DisplayName}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+
+        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="6">
+          <TextBlock Text="Mod" FontWeight="SemiBold" Foreground="#465261" />
+          <ComboBox x:Name="ModsCombo" MinHeight="34">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding DisplayName}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+
+        <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+          <Button x:Name="ScanButton" Content="Scan" MinWidth="96" Click="ScanButton_OnClick" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6">
+          <TextBlock Text="Output ID" FontWeight="SemiBold" Foreground="#465261" />
+          <TextBox x:Name="OutputIdBox" MaxLength="6" MinHeight="34" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
+          <TextBlock Text="Output format" FontWeight="SemiBold" Foreground="#465261" />
+          <ComboBox x:Name="ExtensionCombo" MinHeight="34" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <TextBox x:Name="LogBox"
+             Grid.Row="2"
+             IsReadOnly="True"
+             AcceptsReturn="True"
+             TextWrapping="NoWrap"
+             FontFamily="Consolas"
+             FontSize="13"
+             Background="#141A23"
+             Foreground="#E2EAF2"
+             BorderThickness="0" />
+  </Grid>
+</Window>

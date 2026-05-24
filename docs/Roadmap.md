@@ -34,7 +34,7 @@ The first backend is `WiimmToolchain`, which continues to run external `wit` and
 
 ## 3. Desktop Cross-Platform GUI
 
-Status: planned.
+Status: started.
 
 The current GUI uses WinForms and targets `net8.0-windows`, so it cannot become a real macOS/Linux app through packaging alone.
 
@@ -44,6 +44,8 @@ Preferred direction:
 - Reuse `RiivolutionIsoBuilder.Core`.
 - Keep the existing WinForms app working until the Avalonia app reaches feature parity.
 - Publish desktop builds for Windows first, then Linux and macOS after toolchain packaging is solved for each platform.
+
+The initial `RiivolutionIsoBuilder.Avalonia` project can start, discover the project layout, scan compatible images, list catalog mods, and show logs. It is not feature-complete yet.
 
 ## 4. Platform Tool Packaging
 
