@@ -8,22 +8,27 @@ public sealed class PatcherEngine
 {
     private readonly PatcherPaths paths;
     private readonly ModCatalog catalog;
-    private readonly ExternalToolRunner runner;
+    private readonly IWiiToolchain toolchain;
     private readonly ArchiveExtractor extractor;
     private readonly Action<string> log;
 
     public PatcherEngine(PatcherPaths paths, Action<string> log)
+        : this(paths, log, new WiimmToolchain(paths, log))
+    {
+    }
+
+    public PatcherEngine(PatcherPaths paths, Action<string> log, IWiiToolchain toolchain)
     {
         this.paths = paths;
         this.log = log;
+        this.toolchain = toolchain;
         catalog = ModCatalog.Load(paths.ResolveCatalogFile());
-        runner = new ExternalToolRunner(paths, log);
         extractor = new ArchiveExtractor(log);
     }
 
     public async Task<GameImage?> InspectImageAsync(string imagePath, CancellationToken cancellationToken)
     {
-        var result = await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"LIST --sections --titles {Quote(paths.TitlesFile)} {Quote(imagePath)}", cancellationToken);
+        var result = await toolchain.InspectImageAsync(imagePath, cancellationToken);
         if (result.ExitCode != 0)
         {
             return null;
@@ -44,10 +49,7 @@ public sealed class PatcherEngine
                 continue;
             }
 
-            var result = await runner.RunAsync(
-                paths.ResolveToolPath("wit.exe"),
-                $"LIST -r {QuotePath(searchDirectory, trimTrailingSeparators: true)} --rdepth 5 --sections --titles {Quote(paths.TitlesFile)} -X {QuotePath(paths.ToolsDirectory, trimTrailingSeparators: true)}",
-                cancellationToken);
+            var result = await toolchain.ScanDirectoryAsync(searchDirectory, cancellationToken);
             if (result.ExitCode != 0)
             {
                 continue;
@@ -139,18 +141,18 @@ public sealed class PatcherEngine
         await extractor.ExtractAsync(plan.ModRiiv, Path.Combine(paths.TempDirectory, "mods"), cancellationToken);
 
         log("Extrayendo datos del juego con wit...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"X {Quote(plan.Game.Path)} -PqD {Quote(plan.WorkDirectory)} --psel data", cancellationToken))
+        (await toolchain.ExtractDataPartitionAsync(plan.Game.Path, plan.WorkDirectory, cancellationToken))
             .EnsureSuccess("No se pudo extraer la imagen del juego.");
 
         await ApplyPatchAsync(plan, cancellationToken);
         CopyModFiles(plan, options);
 
         log("Creando imagen modificada...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"CP {Quote(plan.WorkDirectory)} -PqD {Quote(plan.OutputFile)}", cancellationToken))
+        (await toolchain.CreateImageAsync(plan.WorkDirectory, plan.OutputFile, cancellationToken))
             .EnsureSuccess("No se pudo crear la imagen modificada.");
 
         log("Editando ID, TMD y nombre interno...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"ED --id {plan.OutputId} --name {Quote(plan.Mod.DisplayName)} --tt-id {plan.Tmd} {Quote(plan.OutputFile)}", cancellationToken))
+        (await toolchain.EditImageMetadataAsync(plan.OutputFile, plan.OutputId, plan.Mod.DisplayName, plan.Tmd, cancellationToken))
             .EnsureSuccess("No se pudo editar la metadata de salida.");
 
         DeleteIfExists(paths.TempDirectory);
@@ -195,18 +197,18 @@ public sealed class PatcherEngine
         }
 
         log("Extrayendo datos del juego con wit...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"X {Quote(plan.Game.Path)} -PqD {Quote(plan.WorkDirectory)} --psel data", cancellationToken))
+        (await toolchain.ExtractDataPartitionAsync(plan.Game.Path, plan.WorkDirectory, cancellationToken))
             .EnsureSuccess("No se pudo extraer la imagen del juego.");
 
         CopyNativeFiles(plan.Mod, plan.WorkDirectory);
         await ApplyNativeDolPatchAsync(plan, cancellationToken);
 
         log("Creando imagen modificada...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"CP {Quote(plan.WorkDirectory)} -PqD {Quote(plan.OutputFile)}", cancellationToken))
+        (await toolchain.CreateImageAsync(plan.WorkDirectory, plan.OutputFile, cancellationToken))
             .EnsureSuccess("No se pudo crear la imagen modificada.");
 
         log("Editando ID, TMD y nombre interno...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"ED --id {plan.OutputId} --name {Quote(plan.InternalName)} --tt-id {plan.Tmd} {Quote(plan.OutputFile)}", cancellationToken))
+        (await toolchain.EditImageMetadataAsync(plan.OutputFile, plan.OutputId, plan.InternalName, plan.Tmd, cancellationToken))
             .EnsureSuccess("No se pudo editar la metadata de salida.");
 
         DeleteIfExists(paths.TempDirectory);
@@ -224,17 +226,17 @@ public sealed class PatcherEngine
         }
 
         log("Extrayendo datos del juego con wit...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"X {Quote(plan.Game.Path)} -PqD {Quote(plan.WorkDirectory)} --psel data", cancellationToken))
+        (await toolchain.ExtractDataPartitionAsync(plan.Game.Path, plan.WorkDirectory, cancellationToken))
             .EnsureSuccess("No se pudo extraer la imagen del juego.");
 
         await ApplyGctPatchAsync(Path.Combine(plan.WorkDirectory, "sys", "main.dol"), plan.Patch.PatchFile, cancellationToken);
 
         log("Creando imagen modificada...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"CP {Quote(plan.WorkDirectory)} -PqD {Quote(plan.OutputFile)}", cancellationToken))
+        (await toolchain.CreateImageAsync(plan.WorkDirectory, plan.OutputFile, cancellationToken))
             .EnsureSuccess("No se pudo crear la imagen modificada.");
 
         log("Editando ID, TMD y nombre interno...");
-        (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"ED --id {plan.OutputId} --name {Quote(plan.Patch.DisplayName)} --tt-id {plan.Tmd} {Quote(plan.OutputFile)}", cancellationToken))
+        (await toolchain.EditImageMetadataAsync(plan.OutputFile, plan.OutputId, plan.Patch.DisplayName, plan.Tmd, cancellationToken))
             .EnsureSuccess("No se pudo editar la metadata de salida.");
 
         DeleteIfExists(paths.TempDirectory);
@@ -268,7 +270,7 @@ public sealed class PatcherEngine
         try
         {
             log("Aplicando parche XML con wit DOLPATCH...");
-            (await runner.RunAsync(paths.ResolveToolPath("wit.exe"), $"DOLPATCH {Quote(mainDol)} \"NEW=TEXT,0x80001800,1800\" \"XML={tempXml}\" -o", cancellationToken))
+            (await toolchain.ApplyDolPatchXmlAsync(mainDol, tempXml, sourceRoot: null, cancellationToken))
                 .EnsureDolPatchSuccess("No se pudo aplicar el parche XML.");
         }
         finally
@@ -353,10 +355,7 @@ public sealed class PatcherEngine
         await File.WriteAllTextAsync(patchXml, document.ToString(SaveOptions.DisableFormatting), Encoding.UTF8, cancellationToken);
 
         log("Aplicando parches Riivolution con wit DOLPATCH...");
-        (await runner.RunAsync(
-            paths.ResolveToolPath("wit.exe"),
-            $"DOLPATCH {Quote(mainDol)} \"NEW=TEXT,0x80001800,1800\" \"XML={patchXml}\" --source {Quote(plan.Mod.SourceRoot)} -o",
-            cancellationToken))
+        (await toolchain.ApplyDolPatchXmlAsync(mainDol, patchXml, plan.Mod.SourceRoot, cancellationToken))
             .EnsureDolPatchSuccess("No se pudieron aplicar los parches Riivolution.");
     }
 
@@ -368,7 +367,7 @@ public sealed class PatcherEngine
         }
 
         log("Aplicando parche GCT con wstrt...");
-        (await runner.RunAsync(paths.ResolveToolPath("wstrt.exe"), $"patch {Quote(mainDol)} --add-sect {Quote(patchFile)} -oPq", cancellationToken))
+        (await toolchain.ApplyGctPatchAsync(mainDol, patchFile, cancellationToken))
             .EnsureSuccess("No se pudo aplicar el parche GCT.");
     }
 
@@ -651,24 +650,6 @@ public sealed class PatcherEngine
         {
             Directory.Delete(path, true);
         }
-    }
-
-    private static string Quote(string value) => $"\"{value}\"";
-
-    private static string QuotePath(string value, bool trimTrailingSeparators = false)
-    {
-        var normalized = Path.GetFullPath(value);
-        if (trimTrailingSeparators)
-        {
-            var root = Path.GetPathRoot(normalized);
-            while (normalized.Length > (root?.Length ?? 0) && (normalized.EndsWith('\\') || normalized.EndsWith('/')))
-            {
-                normalized = normalized[..^1];
-            }
-        }
-
-        normalized = normalized.Replace('\\', '/');
-        return Quote(normalized);
     }
 
     private GameImage CreateGameImage(WitDisc disc)

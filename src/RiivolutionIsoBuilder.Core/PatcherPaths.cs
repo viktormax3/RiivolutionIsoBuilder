@@ -29,9 +29,9 @@ public sealed class PatcherPaths
     public string OutputDirectory { get; }
     public string TempDirectory { get; }
 
-    public string Wit => Path.Combine(ToolsDirectory, "wit.exe");
-    public string Wstrt => Path.Combine(ToolsDirectory, "wstrt.exe");
-    public string TitlesFile => Path.Combine(ToolsDirectory, "titles.txt");
+    public string Wit => ResolveToolPath("wit");
+    public string Wstrt => ResolveToolPath("wstrt");
+    public string TitlesFile => Path.Combine(ResolveToolsDirectory(), "titles.txt");
     public IEnumerable<string> GameSearchDirectories
     {
         get
@@ -76,7 +76,7 @@ public sealed class PatcherPaths
             dir = dir.Parent;
         }
 
-        throw new DirectoryNotFoundException("No se encontro data\\tools\\wit.exe ni una carpeta Base compatible.");
+        throw new DirectoryNotFoundException("No se encontro una instalacion compatible de wit/wstrt en data/tools ni en una carpeta Base compatible.");
     }
 
     public static PatcherPaths FromLegacyBase(string baseDirectory)
@@ -92,30 +92,48 @@ public sealed class PatcherPaths
 
     private static bool LooksLikeProjectRoot(string path)
     {
-        return File.Exists(Path.Combine(path, "data", "tools", "wit.exe"))
-            && File.Exists(Path.Combine(path, "data", "tools", "wstrt.exe"));
+        return ToolExists(Path.Combine(path, "data", "tools"), "wit")
+            && ToolExists(Path.Combine(path, "data", "tools"), "wstrt");
     }
 
     private static bool LooksLikeLegacyBase(string path)
     {
-        return File.Exists(Path.Combine(path, "bin", "wit.exe"))
-            && File.Exists(Path.Combine(path, "bin", "wstrt.exe"));
+        return ToolExists(Path.Combine(path, "bin"), "wit")
+            && ToolExists(Path.Combine(path, "bin"), "wstrt");
     }
 
     public string ResolveToolPath(string toolName)
     {
+        var executable = ResolveToolExecutableName(toolName);
         if (!LegacyLayout)
         {
-            return Path.Combine(ToolsDirectory, toolName);
+            return Path.Combine(ToolsDirectory, executable);
         }
 
-        return Path.Combine(RootDirectory, "bin", toolName);
+        return Path.Combine(RootDirectory, "bin", executable);
     }
+
+    public string ResolveToolsDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "bin") : ToolsDirectory;
 
     public string ResolveRiivDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "riiv_mods") : RiivDirectory;
     public string ResolveGctDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "gct") : GctDirectory;
     public string ResolveXmlDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "xml") : XmlDirectory;
     public string ResolveBannerDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "banner") : BannerDirectory;
     public string ResolveCatalogFile() => LegacyLayout ? Path.Combine(RootDirectory, "catalog", "mods.json") : CatalogFile;
+
+    private static bool ToolExists(string directory, string toolName)
+    {
+        return File.Exists(Path.Combine(directory, ResolveToolExecutableName(toolName)));
+    }
+
+    private static string ResolveToolExecutableName(string toolName)
+    {
+        if (Path.GetExtension(toolName).Length > 0)
+        {
+            return toolName;
+        }
+
+        return OperatingSystem.IsWindows() ? $"{toolName}.exe" : toolName;
+    }
 }
 

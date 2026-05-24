@@ -181,7 +181,7 @@ dotnet build .\RiivolutionIsoBuilder.sln
 
 Main projects:
 
-- [src/RiivolutionIsoBuilder.Core](src/RiivolutionIsoBuilder.Core): reusable build engine, catalog, Riivolution XML, and tool execution logic.
+- [src/RiivolutionIsoBuilder.Core](src/RiivolutionIsoBuilder.Core): reusable build engine, catalog, Riivolution XML, and toolchain abstraction.
 - [src/RiivolutionIsoBuilder.App](src/RiivolutionIsoBuilder.App): current WinForms builder.
 - [src/RiivolutionIsoBuilder.RiivProbe](src/RiivolutionIsoBuilder.RiivProbe): console XML inspection tool.
 

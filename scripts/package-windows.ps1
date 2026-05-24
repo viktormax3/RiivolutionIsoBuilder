@@ -57,6 +57,7 @@ if ($FrameworkDependent) {
         --output $publishDir
 }
 
+Get-ChildItem -LiteralPath $publishDir -Filter *.pdb -File -ErrorAction SilentlyContinue | Remove-Item -Force
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $packageDir -Recurse -Force
 
 $packageDataDir = Join-Path $packageDir "data"

@@ -17,7 +17,7 @@ Current direction:
 
 ## 2. Toolchain Abstraction
 
-Status: planned.
+Status: started.
 
 The current implementation directly calls Wiimm's `wit` and `wstrt` command-line tools. That is practical and reliable, but the core should depend on a small interface instead of hardcoded process calls.
 
@@ -30,7 +30,7 @@ Target operations:
 - Apply DOLPATCH XML changes.
 - Apply GCT patches.
 
-The first backend can continue to run external `wit` and `wstrt` binaries. Later backends may use platform-specific binaries, a native library, or a partial managed implementation.
+The first backend is `WiimmToolchain`, which continues to run external `wit` and `wstrt` binaries behind an `IWiiToolchain` interface. Later backends may use platform-specific binaries, a native library, or a partial managed implementation.
 
 ## 3. Desktop Cross-Platform GUI
 
