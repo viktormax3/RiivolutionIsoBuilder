@@ -75,5 +75,10 @@ $publishRoot = Join-Path $repoRoot "src/RiivolutionIsoBuilder.Android/bin/$Confi
 $targetRoot = Join-Path $repoRoot $OutputRoot
 New-Item -ItemType Directory -Force $targetRoot | Out-Null
 
-Get-ChildItem -Path $publishRoot -Recurse -Include *.apk,*.aab -ErrorAction SilentlyContinue |
-    Copy-Item -Destination $targetRoot -Force
+$signedPackages = Get-ChildItem -Path $publishRoot -Recurse -Include *-Signed.apk,*.aab -ErrorAction SilentlyContinue
+if ($signedPackages.Count -gt 0) {
+    $signedPackages | Copy-Item -Destination $targetRoot -Force
+} else {
+    Get-ChildItem -Path $publishRoot -Recurse -Include *.apk,*.aab -ErrorAction SilentlyContinue |
+        Copy-Item -Destination $targetRoot -Force
+}

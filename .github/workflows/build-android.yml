@@ -49,5 +49,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RiivolutionIsoBuilder-android
-          path: artifacts/*.apk
+          path: |
+            artifacts/*-Signed.apk
+            artifacts/*.aab
           if-no-files-found: error
