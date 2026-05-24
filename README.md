@@ -32,7 +32,9 @@ You can also use `Elegir XML` to load a native Riivolution XML, or `Elegir GCT` 
 - A legally obtained Wii game backup in `.iso`, `.wbfs`, `.ciso`, `.wdf`, or `.wia` format
 - ZIP-compatible mod archives placed in `data/mods`
 
-Wiimm's `wit.exe`, `wstrt.exe`, `titles.txt`, and required Cygwin DLLs are expected in `data/tools`. They are already present in this project layout.
+Wiimm's `wit`, `wstrt`, `titles.txt`, and required runtime libraries are expected in `data/tools`. Windows uses `wit.exe` and `wstrt.exe`; Linux/macOS builds can use extensionless binaries.
+
+The default Windows tools are already present in this project layout. Future platform-specific tools can be placed in folders such as `data/tools/linux-x64`, `data/tools/osx-x64`, or `data/tools/osx-arm64`. You can also point the app at an external Wiimm tools directory with `RIIVOLUTION_ISO_BUILDER_TOOLS`.
 
 ## Supported Games and Mods
 
@@ -62,7 +64,7 @@ data/
   catalog/     Game/mod metadata used by the UI.
   gct/         GCT patches used by catalog entries.
   mods/        Local mod archives. Put ZIP packages here.
-  tools/       wit, wstrt, titles.txt, and runtime DLLs.
+  tools/       wit, wstrt, titles.txt, and runtime libraries.
   xml/         Preprocessed XML patches for wit DOLPATCH.
 games/         Recommended place for input game backups.
 output/        Generated images.

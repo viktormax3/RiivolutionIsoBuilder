@@ -1,4 +1,6 @@
-﻿namespace RiivolutionIsoBuilder;
+using System.Runtime.InteropServices;
+
+namespace RiivolutionIsoBuilder;
 
 public sealed class PatcherPaths
 {
@@ -31,7 +33,7 @@ public sealed class PatcherPaths
 
     public string Wit => ResolveToolPath("wit");
     public string Wstrt => ResolveToolPath("wstrt");
-    public string TitlesFile => Path.Combine(ResolveToolsDirectory(), "titles.txt");
+    public string TitlesFile => ResolveTitlesFile();
     public IEnumerable<string> GameSearchDirectories
     {
         get
@@ -76,7 +78,7 @@ public sealed class PatcherPaths
             dir = dir.Parent;
         }
 
-        throw new DirectoryNotFoundException("No se encontro una instalacion compatible de wit/wstrt en data/tools ni en una carpeta Base compatible.");
+        throw new DirectoryNotFoundException("No se encontro una instalacion compatible de wit/wstrt. Revisa data/tools, data/tools/<runtime>, una carpeta Base compatible o RIIVOLUTION_ISO_BUILDER_TOOLS.");
     }
 
     public static PatcherPaths FromLegacyBase(string baseDirectory)
@@ -92,28 +94,35 @@ public sealed class PatcherPaths
 
     private static bool LooksLikeProjectRoot(string path)
     {
-        return ToolExists(Path.Combine(path, "data", "tools"), "wit")
-            && ToolExists(Path.Combine(path, "data", "tools"), "wstrt");
+        return Directory.Exists(Path.Combine(path, "data"))
+            && FindCompatibleToolsDirectory(Path.Combine(path, "data", "tools")) is not null;
     }
 
     private static bool LooksLikeLegacyBase(string path)
     {
-        return ToolExists(Path.Combine(path, "bin"), "wit")
-            && ToolExists(Path.Combine(path, "bin"), "wstrt");
+        return IsCompatibleToolsDirectory(Path.Combine(path, "bin"));
     }
 
     public string ResolveToolPath(string toolName)
     {
-        var executable = ResolveToolExecutableName(toolName);
-        if (!LegacyLayout)
-        {
-            return Path.Combine(ToolsDirectory, executable);
-        }
-
-        return Path.Combine(RootDirectory, "bin", executable);
+        return Path.Combine(ResolveToolsDirectory(), ResolveToolExecutableName(toolName));
     }
 
-    public string ResolveToolsDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "bin") : ToolsDirectory;
+    public string ResolveToolsDirectory()
+    {
+        var overrideDirectory = Environment.GetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_TOOLS");
+        if (!string.IsNullOrWhiteSpace(overrideDirectory) && IsCompatibleToolsDirectory(overrideDirectory))
+        {
+            return Path.GetFullPath(overrideDirectory);
+        }
+
+        if (LegacyLayout)
+        {
+            return Path.Combine(RootDirectory, "bin");
+        }
+
+        return FindCompatibleToolsDirectory(ToolsDirectory) ?? ToolsDirectory;
+    }
 
     public string ResolveRiivDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "riiv_mods") : RiivDirectory;
     public string ResolveGctDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "gct") : GctDirectory;
@@ -121,9 +130,69 @@ public sealed class PatcherPaths
     public string ResolveBannerDirectory() => LegacyLayout ? Path.Combine(RootDirectory, "banner") : BannerDirectory;
     public string ResolveCatalogFile() => LegacyLayout ? Path.Combine(RootDirectory, "catalog", "mods.json") : CatalogFile;
 
+    private string ResolveTitlesFile()
+    {
+        var toolchainTitles = Path.Combine(ResolveToolsDirectory(), "titles.txt");
+        if (File.Exists(toolchainTitles))
+        {
+            return toolchainTitles;
+        }
+
+        return Path.Combine(ToolsDirectory, "titles.txt");
+    }
+
+    private static string? FindCompatibleToolsDirectory(string baseToolsDirectory)
+    {
+        foreach (var candidate in ToolDirectoryCandidates(baseToolsDirectory).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (IsCompatibleToolsDirectory(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> ToolDirectoryCandidates(string baseToolsDirectory)
+    {
+        foreach (var name in PlatformToolDirectoryNames())
+        {
+            yield return Path.Combine(baseToolsDirectory, name);
+        }
+
+        yield return baseToolsDirectory;
+    }
+
+    private static bool IsCompatibleToolsDirectory(string directory)
+    {
+        return ToolExists(directory, "wit")
+            && ToolExists(directory, "wstrt");
+    }
+
     private static bool ToolExists(string directory, string toolName)
     {
         return File.Exists(Path.Combine(directory, ResolveToolExecutableName(toolName)));
+    }
+
+    private static IEnumerable<string> PlatformToolDirectoryNames()
+    {
+        var os = OperatingSystem.IsWindows() ? "win"
+            : OperatingSystem.IsLinux() ? "linux"
+            : OperatingSystem.IsMacOS() ? "osx"
+            : OperatingSystem.IsAndroid() ? "android"
+            : "unknown";
+        var arch = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            _ => RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()
+        };
+
+        yield return $"{os}-{arch}";
+        yield return os;
     }
 
     private static string ResolveToolExecutableName(string toolName)
@@ -136,4 +205,3 @@ public sealed class PatcherPaths
         return OperatingSystem.IsWindows() ? $"{toolName}.exe" : toolName;
     }
 }
-

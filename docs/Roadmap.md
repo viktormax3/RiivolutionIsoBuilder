@@ -57,6 +57,8 @@ Possible approaches:
 - Let users point the app to an installed Wiimm tools directory.
 - Use a hybrid model: bundled tools on Windows, detected tools on Linux/macOS during early testing.
 
+Current tool discovery supports the bundled `data/tools` folder, platform-specific folders such as `data/tools/linux-x64` and `data/tools/osx-arm64`, legacy `Base/bin` layouts, and the `RIIVOLUTION_ISO_BUILDER_TOOLS` environment variable.
+
 ## 5. Android Feasibility
 
 Status: future experiment.
