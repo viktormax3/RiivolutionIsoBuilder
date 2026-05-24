@@ -16,7 +16,7 @@
     </Border>
 
     <Border Grid.Row="1" Background="White" Padding="16" Margin="0,0,0,12">
-      <Grid ColumnDefinitions="2*,2*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+      <Grid ColumnDefinitions="2*,2*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
           <TextBlock Text="Detected game" FontWeight="SemiBold" Foreground="#465261" />
           <ComboBox x:Name="GamesCombo" MinHeight="34" SelectionChanged="GamesCombo_OnSelectionChanged">
@@ -30,7 +30,7 @@
 
         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="6">
           <TextBlock Text="Mod" FontWeight="SemiBold" Foreground="#465261" />
-          <ComboBox x:Name="ModsCombo" MinHeight="34">
+          <ComboBox x:Name="ModsCombo" MinHeight="34" SelectionChanged="ModsCombo_OnSelectionChanged">
             <ComboBox.ItemTemplate>
               <DataTemplate>
                 <TextBlock Text="{Binding DisplayName}" />
@@ -41,6 +41,7 @@
 
         <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
           <Button x:Name="ScanButton" Content="Scan" MinWidth="96" Click="ScanButton_OnClick" />
+          <Button x:Name="BrowseButton" Content="Browse ISO" MinWidth="110" Click="BrowseButton_OnClick" />
         </StackPanel>
 
         <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6">
@@ -51,6 +52,15 @@
         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
           <TextBlock Text="Output format" FontWeight="SemiBold" Foreground="#465261" />
           <ComboBox x:Name="ExtensionCombo" MinHeight="34" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+          <Button x:Name="BuildButton" Content="Build" MinWidth="96" Click="BuildButton_OnClick" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="16">
+          <CheckBox x:Name="UseCustomBannerCheck" Content="Use custom banner" IsChecked="True" />
+          <ProgressBar x:Name="Progress" IsIndeterminate="True" IsVisible="False" Width="220" Height="18" />
         </StackPanel>
       </Grid>
     </Border>
