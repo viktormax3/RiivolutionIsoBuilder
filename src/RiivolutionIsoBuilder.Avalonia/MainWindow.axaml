@@ -6,100 +6,18 @@
         Height="800"
         MinWidth="980"
         MinHeight="680"
-        Background="#F4F6F8">
-  <Window.Styles>
-    <Style Selector="TextBlock.label">
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#354255" />
-    </Style>
-    <Style Selector="TextBlock.muted">
-      <Setter Property="Foreground" Value="#687386" />
-    </Style>
-    <Style Selector="Border.panel">
-      <Setter Property="Background" Value="White" />
-      <Setter Property="CornerRadius" Value="4" />
-      <Setter Property="Padding" Value="14" />
-    </Style>
-    <Style Selector="Button">
-      <Setter Property="MinHeight" Value="34" />
-      <Setter Property="Padding" Value="14,6" />
-      <Setter Property="CornerRadius" Value="4" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="Background" Value="#E7ECF3" />
-      <Setter Property="Foreground" Value="#172033" />
-      <Setter Property="BorderBrush" Value="#B7C2D0" />
-    </Style>
-    <Style Selector="Button:pointerover">
-      <Setter Property="Background" Value="#D9E2EE" />
-      <Setter Property="Foreground" Value="#172033" />
-      <Setter Property="BorderBrush" Value="#99A8BA" />
-    </Style>
-    <Style Selector="Button:pressed">
-      <Setter Property="Background" Value="#C8D4E3" />
-      <Setter Property="Foreground" Value="#172033" />
-    </Style>
-    <Style Selector="Button:disabled">
-      <Setter Property="Background" Value="#EEF1F5" />
-      <Setter Property="Foreground" Value="#8A95A5" />
-      <Setter Property="BorderBrush" Value="#D6DDE7" />
-    </Style>
-    <Style Selector="Button.secondary">
-      <Setter Property="Background" Value="#E7ECF3" />
-      <Setter Property="Foreground" Value="#172033" />
-      <Setter Property="BorderBrush" Value="#B7C2D0" />
-    </Style>
-    <Style Selector="Button.secondary:pointerover">
-      <Setter Property="Background" Value="#D9E2EE" />
-      <Setter Property="Foreground" Value="#172033" />
-      <Setter Property="BorderBrush" Value="#99A8BA" />
-    </Style>
-    <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#166A4D" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="BorderBrush" Value="#166A4D" />
-    </Style>
-    <Style Selector="Button.primary:pointerover">
-      <Setter Property="Background" Value="#1E7A5A" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="BorderBrush" Value="#1E7A5A" />
-    </Style>
-    <Style Selector="Button.danger">
-      <Setter Property="Background" Value="#8A2E2E" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="BorderBrush" Value="#8A2E2E" />
-    </Style>
-    <Style Selector="Button.danger:pointerover">
-      <Setter Property="Background" Value="#A33A3A" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="BorderBrush" Value="#A33A3A" />
-    </Style>
-    <Style Selector="ComboBox">
-      <Setter Property="MinHeight" Value="34" />
-      <Setter Property="Background" Value="White" />
-      <Setter Property="Foreground" Value="#172033" />
-      <Setter Property="BorderBrush" Value="#B7C2D0" />
-    </Style>
-    <Style Selector="TextBox">
-      <Setter Property="MinHeight" Value="34" />
-      <Setter Property="Background" Value="White" />
-      <Setter Property="Foreground" Value="#172033" />
-      <Setter Property="BorderBrush" Value="#B7C2D0" />
-    </Style>
-    <Style Selector="CheckBox">
-      <Setter Property="Foreground" Value="#172033" />
-    </Style>
-  </Window.Styles>
+        Background="{StaticResource AppBackgroundBrush}">
 
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20" RowSpacing="12">
-    <Border Grid.Row="0" Background="#223044" Padding="18,16" CornerRadius="4">
+    <Border Grid.Row="0" Background="{StaticResource HeaderBrush}" Padding="18,16" CornerRadius="4">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Spacing="5">
           <TextBlock Text="Riivolution ISO Builder" FontSize="26" FontWeight="Bold" Foreground="White" />
-          <TextBlock Text="Avalonia desktop preview" Foreground="#BFD0E4" />
-          <TextBlock x:Name="StatusText" Text="Starting..." Foreground="#D9E5F2" />
+          <TextBlock Text="Avalonia desktop preview" Classes="onDarkMuted" />
+          <TextBlock x:Name="StatusText" Text="Starting..." Classes="onDark" />
         </StackPanel>
-        <Border Grid.Column="1" Background="#31435B" Padding="10,5" CornerRadius="4" VerticalAlignment="Top">
-          <TextBlock Text="feature/avalonia-ui" Foreground="#E8F0FA" FontWeight="SemiBold" />
+        <Border Grid.Column="1" Background="{StaticResource HeaderBadgeBrush}" Padding="10,5" CornerRadius="4" VerticalAlignment="Top">
+          <TextBlock Text="feature/avalonia-ui" Classes="onDark" FontWeight="SemiBold" />
         </Border>
       </Grid>
     </Border>
@@ -199,16 +117,16 @@
       </Border>
 
       <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="8">
-        <Border Background="#EEF3F8" BorderBrush="#D0DAE6" BorderThickness="1" CornerRadius="4" Padding="12">
+        <Border Classes="notice">
           <TextBlock x:Name="EmptyStateText"
                      TextWrapping="Wrap"
-                     Foreground="#526174"
+                     Classes="muted"
                      Text="Waiting for scan results..." />
         </Border>
 
-        <Border Grid.Row="1" Background="#121820" CornerRadius="4" Padding="12">
+        <Border Grid.Row="1" Background="{StaticResource LogBackgroundBrush}" CornerRadius="4" Padding="12">
           <Grid RowDefinitions="Auto,*">
-            <TextBlock Text="Log" Foreground="#E2EAF2" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Text="Log" Foreground="{StaticResource LogTextBrush}" FontWeight="SemiBold" Margin="0,0,0,8" />
             <TextBox x:Name="LogBox"
                      Grid.Row="1"
                      IsReadOnly="True"
@@ -216,8 +134,8 @@
                      TextWrapping="NoWrap"
                      FontFamily="Consolas"
                      FontSize="13"
-                     Background="#121820"
-                     Foreground="#E2EAF2"
+                     Background="{StaticResource LogBackgroundBrush}"
+                     Foreground="{StaticResource LogTextBrush}"
                      BorderThickness="0" />
           </Grid>
         </Border>
@@ -225,7 +143,7 @@
     </Grid>
 
     <TextBlock Grid.Row="4"
-               Foreground="#6B7280"
+               Classes="muted"
                Text="This is the Avalonia branch UI. The WinForms app remains available on master until feature parity." />
   </Grid>
 </Window>

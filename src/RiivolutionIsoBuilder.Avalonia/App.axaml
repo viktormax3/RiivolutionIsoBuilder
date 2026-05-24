@@ -5,5 +5,6 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://RiivolutionIsoBuilder.Avalonia/Styles/AppTheme.axaml" />
     </Application.Styles>
 </Application>
