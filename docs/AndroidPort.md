@@ -97,6 +97,8 @@ The app can open a game image manually through the Avalonia storage picker. Auto
 The current backend still executes external `wit` and `wstrt` binaries. That is the fastest path to validate Android feasibility, but it has constraints:
 
 - Android binaries must be executable on the target ABI.
+- Linux desktop binaries such as `linux-x64` will not run on a normal Android phone. Most devices need `android-arm64` binaries; some older devices need `android-arm`.
+- Binaries copied into app data may need executable permissions, and some Android versions/devices restrict executing files from writable app storage. If that happens, the safer packaging path is to ship supported native binaries as app native libraries or move the toolchain behind a native library backend.
 - Files selected through Android storage providers must expose a local path for the current core engine.
 - Large ISO/WBFS processing needs enough free app-accessible storage.
 - A future backend may use native libraries or partial managed implementations for operations now delegated to Wiimm tools.

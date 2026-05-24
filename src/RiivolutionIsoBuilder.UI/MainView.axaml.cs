@@ -44,7 +44,7 @@ public partial class MainView : UserControl
         AppendLog($"Tools folder: {paths.ResolveToolsDirectory()}");
 
         AttachedToVisualTree += async (_, _) => await ScanAsync();
-        SizeChanged += (_, _) => UpdateResponsiveLayout(Bounds.Width);
+        SizeChanged += (_, _) => UpdateResponsiveLayout(Bounds.Width, Bounds.Height);
     }
 
     private async void ScanButton_OnClick(object? sender, RoutedEventArgs e)
@@ -511,9 +511,9 @@ public partial class MainView : UserControl
         return path;
     }
 
-    private void UpdateResponsiveLayout(double width)
+    private void UpdateResponsiveLayout(double width, double height)
     {
-        var shouldUseCompactLayout = width < 820;
+        var shouldUseCompactLayout = width < 900 || height < 700;
         if (shouldUseCompactLayout == compactLayout)
         {
             return;
@@ -522,17 +522,37 @@ public partial class MainView : UserControl
         compactLayout = shouldUseCompactLayout;
         if (compactLayout)
         {
+            RootGrid.Margin = new Thickness(10);
             WorkflowGrid.ColumnDefinitions = new ColumnDefinitions("*");
             WorkflowGrid.RowDefinitions = new RowDefinitions("Auto,Auto");
+            PathsGrid.ColumnDefinitions = new ColumnDefinitions("*");
+            PathsGrid.RowDefinitions = new RowDefinitions("Auto,Auto,Auto");
+            Grid.SetColumn(ProjectPathPanel, 0);
+            Grid.SetRow(ProjectPathPanel, 0);
+            Grid.SetColumn(GamesPathPanel, 0);
+            Grid.SetRow(GamesPathPanel, 1);
+            Grid.SetColumn(ToolsPathPanel, 0);
+            Grid.SetRow(ToolsPathPanel, 2);
             Grid.SetColumn(WorkflowRight, 0);
             Grid.SetRow(WorkflowRight, 1);
+            LogBox.Height = Math.Max(180, Math.Min(320, height * 0.45));
             return;
         }
 
+        RootGrid.Margin = new Thickness(16);
         WorkflowGrid.ColumnDefinitions = new ColumnDefinitions("430,*");
         WorkflowGrid.RowDefinitions = new RowDefinitions("*");
+        PathsGrid.ColumnDefinitions = new ColumnDefinitions("*,*,*");
+        PathsGrid.RowDefinitions = new RowDefinitions("Auto");
+        Grid.SetColumn(ProjectPathPanel, 0);
+        Grid.SetRow(ProjectPathPanel, 0);
+        Grid.SetColumn(GamesPathPanel, 1);
+        Grid.SetRow(GamesPathPanel, 0);
+        Grid.SetColumn(ToolsPathPanel, 2);
+        Grid.SetRow(ToolsPathPanel, 0);
         Grid.SetColumn(WorkflowRight, 1);
         Grid.SetRow(WorkflowRight, 0);
+        LogBox.Height = 220;
     }
 
     private void AppendLog(string message)

@@ -3,7 +3,9 @@
              x:Class="RiivolutionIsoBuilder.UI.MainView"
              Background="{DynamicResource AppBackgroundBrush}">
 
-  <Grid RowDefinitions="Auto,Auto,*" Margin="16" RowSpacing="10">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+  <Grid x:Name="RootGrid" RowDefinitions="Auto,Auto,Auto" Margin="16" RowSpacing="10">
     <Border Grid.Row="0" Background="{DynamicResource HeaderBrush}" Padding="16,12" CornerRadius="4">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
         <StackPanel Spacing="3">
@@ -28,21 +30,21 @@
           <Button x:Name="ClearLogButton" Classes="secondary toolbar" Content="Clear log" Click="ClearLogButton_OnClick" />
         </WrapPanel>
 
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+        <WrapPanel Grid.Column="1" VerticalAlignment="Top">
           <Button x:Name="CancelButton" Classes="danger" Content="Cancel" MinWidth="88" Click="CancelButton_OnClick" IsEnabled="False" />
           <Button x:Name="BuildButton" Classes="primary" Content="Build" MinWidth="108" Click="BuildButton_OnClick" />
-        </StackPanel>
+        </WrapPanel>
 
-        <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*" ColumnSpacing="14">
-          <StackPanel Spacing="2">
+        <Grid x:Name="PathsGrid" Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*" ColumnSpacing="14" RowSpacing="6">
+          <StackPanel x:Name="ProjectPathPanel" Spacing="2">
             <TextBlock Classes="pathLabel" Text="Project" />
             <TextBlock x:Name="ProjectRootText" Classes="muted small" TextTrimming="CharacterEllipsis" />
           </StackPanel>
-          <StackPanel Grid.Column="1" Spacing="2">
+          <StackPanel x:Name="GamesPathPanel" Grid.Column="1" Spacing="2">
             <TextBlock Classes="pathLabel" Text="Games" />
             <TextBlock x:Name="GamesFolderText" Classes="muted small" TextTrimming="CharacterEllipsis" />
           </StackPanel>
-          <StackPanel Grid.Column="2" Spacing="2">
+          <StackPanel x:Name="ToolsPathPanel" Grid.Column="2" Spacing="2">
             <TextBlock Classes="pathLabel" Text="Tools" />
             <TextBlock x:Name="ToolsFolderText" Classes="muted small" TextTrimming="CharacterEllipsis" />
           </StackPanel>
@@ -164,4 +166,5 @@
       </Grid>
     </Grid>
   </Grid>
+  </ScrollViewer>
 </UserControl>
