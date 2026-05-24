@@ -20,12 +20,19 @@ public partial class MainWindow : Window
         paths = PatcherPaths.Discover();
         engine = new PatcherEngine(paths, AppendLog);
         StatusText.Text = $"Ready - {paths.RootDirectory}";
+        ProjectRootText.Text = paths.RootDirectory;
+        GamesFolderText.Text = paths.GamesDirectory;
+        ToolsFolderText.Text = paths.ResolveToolsDirectory();
         ExtensionCombo.ItemsSource = BuilderDefaults.OutputExtensions;
         ExtensionCombo.SelectedIndex = 0;
 
         AppendLog($"Project: {paths.RootDirectory}");
         AppendLog($"Catalog: {paths.ResolveCatalogFile()}");
         AppendLog($"Mods: {paths.ResolveRiivDirectory()}");
+        AppendLog($"Games folder: {paths.GamesDirectory}");
+        AppendLog($"Tools folder: {paths.ResolveToolsDirectory()}");
+
+        Opened += async (_, _) => await ScanAsync();
     }
 
     private async void ScanButton_OnClick(object? sender, RoutedEventArgs e)
@@ -76,7 +83,12 @@ public partial class MainWindow : Window
             RefreshGameList();
             if (gameImages.Count == 0)
             {
+                EmptyStateText.Text = $"No compatible images found in {paths.GamesDirectory}. Use Browse ISO to select one manually.";
                 AppendLog("No compatible images found.");
+            }
+            else
+            {
+                EmptyStateText.Text = $"{gameImages.Count} compatible image(s) found. Select one, then choose a mod or load XML/GCT.";
             }
         }
         catch (Exception ex)
@@ -118,6 +130,7 @@ public partial class MainWindow : Window
 
             AddOrSelectGame(image);
             AppendLog($"Image selected: {image.DisplayName}");
+            EmptyStateText.Text = "Image selected. Choose a catalog mod, or load a Riivolution XML/GCT patch.";
         }
         catch (Exception ex)
         {
@@ -160,6 +173,7 @@ public partial class MainWindow : Window
             AddOrSelectMod(mod);
             OutputIdBox.Text = engine.SuggestNativeOutputId(mod, game);
             AppendLog($"XML loaded: {mod.ShortName} - {xmlFile}");
+            EmptyStateText.Text = "Riivolution XML loaded. Review the output ID and build when ready.";
             if (!string.IsNullOrWhiteSpace(mod.ChoiceSummary))
             {
                 AppendLog($"XML choices: {mod.ChoiceSummary}");
@@ -194,6 +208,7 @@ public partial class MainWindow : Window
         AddOrSelectMod(patch);
         OutputIdBox.Text = OutputIdSuggester.ForManualPatch(displayName, game);
         AppendLog($"GCT loaded: {displayName} - {gctFile}");
+        EmptyStateText.Text = "GCT patch loaded. Review the output ID and build when ready.";
     }
 
     private async Task BuildAsync()
@@ -237,6 +252,7 @@ public partial class MainWindow : Window
             }
 
             AppendLog("Build finished.");
+            EmptyStateText.Text = "Build finished. Check the output folder for the generated image.";
         }
         catch (Exception ex)
         {
@@ -268,6 +284,7 @@ public partial class MainWindow : Window
         if (modChoices.Count == 0)
         {
             AppendLog("No local catalog mods found for the selected game.");
+            EmptyStateText.Text = "No catalog mods found for this game. You can still load a Riivolution XML or GCT patch.";
         }
     }
 

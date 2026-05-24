@@ -1,81 +1,142 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="RiivolutionIsoBuilder.Avalonia.MainWindow"
-        Title="Riivolution ISO Builder"
-        Width="1120"
-        Height="740"
-        MinWidth="900"
-        MinHeight="620"
-        Background="#EEF1F5">
-  <Grid RowDefinitions="Auto,Auto,*" Margin="20">
-    <Border Grid.Row="0" Background="#1F2A38" Padding="18,16" Margin="0,0,0,14">
-      <StackPanel Spacing="6">
-        <TextBlock Text="Riivolution ISO Builder" FontSize="26" FontWeight="Bold" Foreground="White" />
-        <TextBlock x:Name="StatusText" Text="Starting..." Foreground="#C4CFDC" />
-      </StackPanel>
-    </Border>
+        Title="Riivolution ISO Builder - Avalonia"
+        Width="1160"
+        Height="760"
+        MinWidth="940"
+        MinHeight="640"
+        Background="#F3F4F6">
+  <Window.Styles>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="14,6" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#166A4D" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.primary:pointerover">
+      <Setter Property="Background" Value="#1E7A5A" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#3F4B5B" />
+    </Style>
+  </Window.Styles>
 
-    <Border Grid.Row="1" Background="White" Padding="16" Margin="0,0,0,12">
-      <Grid ColumnDefinitions="2*,2*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
-          <TextBlock Text="Detected game" FontWeight="SemiBold" Foreground="#465261" />
-          <ComboBox x:Name="GamesCombo" MinHeight="34" SelectionChanged="GamesCombo_OnSelectionChanged">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding DisplayName}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="20">
+    <Border Grid.Row="0" Background="#223044" Padding="18,16" Margin="0,0,0,12" CornerRadius="4">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="5">
+          <TextBlock Text="Riivolution ISO Builder" FontSize="26" FontWeight="Bold" Foreground="White" />
+          <TextBlock Text="Avalonia desktop preview" Foreground="#BFD0E4" />
+          <TextBlock x:Name="StatusText" Text="Starting..." Foreground="#D9E5F2" />
         </StackPanel>
-
-        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="6">
-          <TextBlock Text="Mod" FontWeight="SemiBold" Foreground="#465261" />
-          <ComboBox x:Name="ModsCombo" MinHeight="34" SelectionChanged="ModsCombo_OnSelectionChanged">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding DisplayName}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </StackPanel>
-
-        <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-          <Button x:Name="ScanButton" Content="Scan" MinWidth="96" Click="ScanButton_OnClick" />
-          <Button x:Name="BrowseButton" Content="Browse ISO" MinWidth="110" Click="BrowseButton_OnClick" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6">
-          <TextBlock Text="Output ID" FontWeight="SemiBold" Foreground="#465261" />
-          <TextBox x:Name="OutputIdBox" MaxLength="6" MinHeight="34" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
-          <TextBlock Text="Output format" FontWeight="SemiBold" Foreground="#465261" />
-          <ComboBox x:Name="ExtensionCombo" MinHeight="34" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-          <Button x:Name="BuildButton" Content="Build" MinWidth="96" Click="BuildButton_OnClick" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10">
-          <Button x:Name="XmlButton" Content="Browse XML" MinWidth="110" Click="XmlButton_OnClick" />
-          <Button x:Name="GctButton" Content="Browse GCT" MinWidth="110" Click="GctButton_OnClick" />
-          <CheckBox x:Name="UseCustomBannerCheck" Content="Use custom banner" IsChecked="True" />
-          <ProgressBar x:Name="Progress" IsIndeterminate="True" IsVisible="False" Width="220" Height="18" />
-        </StackPanel>
+        <Border Grid.Column="1" Background="#31435B" Padding="10,5" CornerRadius="4" VerticalAlignment="Top">
+          <TextBlock Text="feature/avalonia-ui" Foreground="#E8F0FA" FontWeight="SemiBold" />
+        </Border>
       </Grid>
     </Border>
 
-    <TextBox x:Name="LogBox"
-             Grid.Row="2"
-             IsReadOnly="True"
-             AcceptsReturn="True"
-             TextWrapping="NoWrap"
-             FontFamily="Consolas"
-             FontSize="13"
-             Background="#141A23"
-             Foreground="#E2EAF2"
-             BorderThickness="0" />
+    <Border Grid.Row="1" Background="White" Padding="14" Margin="0,0,0,12" CornerRadius="4">
+      <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="6">
+        <TextBlock Grid.Column="0" Classes="label" Text="Project root" />
+        <TextBlock Grid.Column="1" Classes="label" Text="Games folder" />
+        <TextBlock Grid.Column="2" Classes="label" Text="Tools folder" />
+        <TextBlock Grid.Row="1" Grid.Column="0" x:Name="ProjectRootText" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="GamesFolderText" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Row="1" Grid.Column="2" x:Name="ToolsFolderText" TextTrimming="CharacterEllipsis" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="3*,2*" ColumnSpacing="12">
+      <Border Grid.Column="0" Background="White" Padding="16" CornerRadius="4">
+        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="14">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label" Text="Detected game" />
+              <ComboBox x:Name="GamesCombo" MinHeight="34" SelectionChanged="GamesCombo_OnSelectionChanged">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding DisplayName}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+              <Button x:Name="ScanButton" Content="Scan" MinWidth="86" Click="ScanButton_OnClick" />
+              <Button x:Name="BrowseButton" Content="Browse ISO" MinWidth="110" Click="BrowseButton_OnClick" />
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Grid.Row="1" Spacing="6">
+            <TextBlock Classes="label" Text="Mod, XML, or GCT" />
+            <ComboBox x:Name="ModsCombo" MinHeight="34" SelectionChanged="ModsCombo_OnSelectionChanged">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <Grid Grid.Row="2" ColumnDefinitions="*,*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label" Text="Output ID" />
+              <TextBox x:Name="OutputIdBox" MaxLength="6" MinHeight="34" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Classes="label" Text="Output format" />
+              <ComboBox x:Name="ExtensionCombo" MinHeight="34" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+              <Button x:Name="BuildButton" Classes="primary" Content="Build" MinWidth="96" Click="BuildButton_OnClick" />
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button x:Name="XmlButton" Content="Browse XML" MinWidth="110" Click="XmlButton_OnClick" />
+              <Button x:Name="GctButton" Content="Browse GCT" MinWidth="110" Click="GctButton_OnClick" />
+              <CheckBox x:Name="UseCustomBannerCheck" Content="Use custom banner" IsChecked="True" VerticalAlignment="Center" />
+              <ProgressBar x:Name="Progress" IsIndeterminate="True" IsVisible="False" Width="180" Height="18" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#D7DEE8" BorderThickness="1" CornerRadius="4" Padding="14">
+              <TextBlock x:Name="EmptyStateText"
+                         TextWrapping="Wrap"
+                         Foreground="#596679"
+                         Text="Scanning starts automatically. Put backups in the games folder, or use Browse ISO. Use Browse XML or Browse GCT after selecting a game." />
+            </Border>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Background="#141A23" CornerRadius="4" Padding="12">
+        <Grid RowDefinitions="Auto,*">
+          <TextBlock Text="Log" Foreground="#E2EAF2" FontWeight="SemiBold" Margin="0,0,0,8" />
+          <TextBox x:Name="LogBox"
+                   Grid.Row="1"
+                   IsReadOnly="True"
+                   AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   FontFamily="Consolas"
+                   FontSize="13"
+                   Background="#141A23"
+                   Foreground="#E2EAF2"
+                   BorderThickness="0" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <TextBlock Grid.Row="3"
+               Margin="0,10,0,0"
+               Foreground="#6B7280"
+               Text="This is the Avalonia branch UI. The WinForms app remains available on master until feature parity." />
   </Grid>
 </Window>
