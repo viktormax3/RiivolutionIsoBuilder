@@ -6,19 +6,25 @@
         Height="800"
         MinWidth="980"
         MinHeight="680"
-        Background="{StaticResource AppBackgroundBrush}">
+        Background="{DynamicResource AppBackgroundBrush}">
 
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="20" RowSpacing="12">
-    <Border Grid.Row="0" Background="{StaticResource HeaderBrush}" Padding="18,16" CornerRadius="4">
+    <Border Grid.Row="0" Background="{DynamicResource HeaderBrush}" Padding="18,16" CornerRadius="4">
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Spacing="5">
           <TextBlock Text="Riivolution ISO Builder" FontSize="26" FontWeight="Bold" Foreground="White" />
           <TextBlock Text="Avalonia desktop preview" Classes="onDarkMuted" />
           <TextBlock x:Name="StatusText" Text="Starting..." Classes="onDark" />
         </StackPanel>
-        <Border Grid.Column="1" Background="{StaticResource HeaderBadgeBrush}" Padding="10,5" CornerRadius="4" VerticalAlignment="Top">
-          <TextBlock Text="feature/avalonia-ui" Classes="onDark" FontWeight="SemiBold" />
-        </Border>
+        <StackPanel Grid.Column="1" Spacing="8" Width="190">
+          <Border Background="{DynamicResource HeaderBadgeBrush}" Padding="10,5" CornerRadius="4" HorizontalAlignment="Right">
+            <TextBlock Text="feature/avalonia-ui" Classes="onDark" FontWeight="SemiBold" />
+          </Border>
+          <StackPanel Spacing="4">
+            <TextBlock Text="Theme" Classes="onDarkMuted" FontSize="12" />
+            <ComboBox x:Name="ThemeCombo" SelectionChanged="ThemeCombo_OnSelectionChanged" />
+          </StackPanel>
+        </StackPanel>
       </Grid>
     </Border>
 
@@ -116,17 +122,26 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="8">
-        <Border Classes="notice">
+      <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" RowSpacing="8">
+        <Border x:Name="XmlOptionsPanelHost" Classes="panel" IsVisible="False">
+          <Grid RowDefinitions="Auto,*" RowSpacing="10">
+            <TextBlock Classes="label" Text="Riivolution XML options" />
+            <ScrollViewer Grid.Row="1" MaxHeight="150">
+              <StackPanel x:Name="XmlOptionsPanel" Spacing="10" />
+            </ScrollViewer>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Classes="notice">
           <TextBlock x:Name="EmptyStateText"
                      TextWrapping="Wrap"
                      Classes="muted"
                      Text="Waiting for scan results..." />
         </Border>
 
-        <Border Grid.Row="1" Background="{StaticResource LogBackgroundBrush}" CornerRadius="4" Padding="12">
+        <Border Grid.Row="2" Background="{DynamicResource LogBackgroundBrush}" CornerRadius="4" Padding="12">
           <Grid RowDefinitions="Auto,*">
-            <TextBlock Text="Log" Foreground="{StaticResource LogTextBrush}" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Text="Log" Foreground="{DynamicResource LogTextBrush}" FontWeight="SemiBold" Margin="0,0,0,8" />
             <TextBox x:Name="LogBox"
                      Grid.Row="1"
                      IsReadOnly="True"
@@ -134,8 +149,8 @@
                      TextWrapping="NoWrap"
                      FontFamily="Consolas"
                      FontSize="13"
-                     Background="{StaticResource LogBackgroundBrush}"
-                     Foreground="{StaticResource LogTextBrush}"
+                     Background="{DynamicResource LogBackgroundBrush}"
+                     Foreground="{DynamicResource LogTextBrush}"
                      BorderThickness="0" />
           </Grid>
         </Border>

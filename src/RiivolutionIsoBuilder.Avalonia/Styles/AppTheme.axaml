@@ -1,57 +1,89 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Styles.Resources>
-    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6F8" />
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#EEF3F8" />
-    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#D0DAE6" />
-    <SolidColorBrush x:Key="HeaderBrush" Color="#223044" />
-    <SolidColorBrush x:Key="HeaderBadgeBrush" Color="#31435B" />
-    <SolidColorBrush x:Key="TextBrush" Color="#172033" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#687386" />
-    <SolidColorBrush x:Key="TextOnDarkBrush" Color="#E8F0FA" />
-    <SolidColorBrush x:Key="TextOnDarkMutedBrush" Color="#BFD0E4" />
-    <SolidColorBrush x:Key="ControlBrush" Color="#E7ECF3" />
-    <SolidColorBrush x:Key="ControlHoverBrush" Color="#D9E2EE" />
-    <SolidColorBrush x:Key="ControlPressedBrush" Color="#C8D4E3" />
-    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#EEF1F5" />
-    <SolidColorBrush x:Key="ControlDisabledTextBrush" Color="#8A95A5" />
-    <SolidColorBrush x:Key="ControlBorderBrush" Color="#B7C2D0" />
-    <SolidColorBrush x:Key="ControlHoverBorderBrush" Color="#99A8BA" />
-    <SolidColorBrush x:Key="PrimaryBrush" Color="#166A4D" />
-    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#1E7A5A" />
-    <SolidColorBrush x:Key="DangerBrush" Color="#8A2E2E" />
-    <SolidColorBrush x:Key="DangerHoverBrush" Color="#A33A3A" />
-    <SolidColorBrush x:Key="LogBackgroundBrush" Color="#121820" />
-    <SolidColorBrush x:Key="LogTextBrush" Color="#E2EAF2" />
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6F8" />
+          <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="SurfaceAltBrush" Color="#EEF3F8" />
+          <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#D0DAE6" />
+          <SolidColorBrush x:Key="HeaderBrush" Color="#223044" />
+          <SolidColorBrush x:Key="HeaderBadgeBrush" Color="#31435B" />
+          <SolidColorBrush x:Key="TextBrush" Color="#172033" />
+          <SolidColorBrush x:Key="TextMutedBrush" Color="#687386" />
+          <SolidColorBrush x:Key="TextOnDarkBrush" Color="#E8F0FA" />
+          <SolidColorBrush x:Key="TextOnDarkMutedBrush" Color="#BFD0E4" />
+          <SolidColorBrush x:Key="ControlBrush" Color="#E7ECF3" />
+          <SolidColorBrush x:Key="ControlHoverBrush" Color="#D9E2EE" />
+          <SolidColorBrush x:Key="ControlPressedBrush" Color="#C8D4E3" />
+          <SolidColorBrush x:Key="ControlDisabledBrush" Color="#EEF1F5" />
+          <SolidColorBrush x:Key="ControlDisabledTextBrush" Color="#8A95A5" />
+          <SolidColorBrush x:Key="ControlBorderBrush" Color="#B7C2D0" />
+          <SolidColorBrush x:Key="ControlHoverBorderBrush" Color="#99A8BA" />
+          <SolidColorBrush x:Key="PrimaryBrush" Color="#166A4D" />
+          <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#1E7A5A" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#8A2E2E" />
+          <SolidColorBrush x:Key="DangerHoverBrush" Color="#A33A3A" />
+          <SolidColorBrush x:Key="LogBackgroundBrush" Color="#121820" />
+          <SolidColorBrush x:Key="LogTextBrush" Color="#E2EAF2" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#10151D" />
+          <SolidColorBrush x:Key="SurfaceBrush" Color="#18212D" />
+          <SolidColorBrush x:Key="SurfaceAltBrush" Color="#202B3A" />
+          <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#344154" />
+          <SolidColorBrush x:Key="HeaderBrush" Color="#111927" />
+          <SolidColorBrush x:Key="HeaderBadgeBrush" Color="#25344A" />
+          <SolidColorBrush x:Key="TextBrush" Color="#E8EEF7" />
+          <SolidColorBrush x:Key="TextMutedBrush" Color="#A7B3C4" />
+          <SolidColorBrush x:Key="TextOnDarkBrush" Color="#F3F7FC" />
+          <SolidColorBrush x:Key="TextOnDarkMutedBrush" Color="#BFD0E4" />
+          <SolidColorBrush x:Key="ControlBrush" Color="#253244" />
+          <SolidColorBrush x:Key="ControlHoverBrush" Color="#304158" />
+          <SolidColorBrush x:Key="ControlPressedBrush" Color="#3B4F68" />
+          <SolidColorBrush x:Key="ControlDisabledBrush" Color="#1C2532" />
+          <SolidColorBrush x:Key="ControlDisabledTextBrush" Color="#6F7A8A" />
+          <SolidColorBrush x:Key="ControlBorderBrush" Color="#43536A" />
+          <SolidColorBrush x:Key="ControlHoverBorderBrush" Color="#5D708C" />
+          <SolidColorBrush x:Key="PrimaryBrush" Color="#2B8A67" />
+          <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#35A17A" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#A04747" />
+          <SolidColorBrush x:Key="DangerHoverBrush" Color="#B95757" />
+          <SolidColorBrush x:Key="LogBackgroundBrush" Color="#080C12" />
+          <SolidColorBrush x:Key="LogTextBrush" Color="#E2EAF2" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
   </Styles.Resources>
 
   <Style Selector="TextBlock.label">
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
   </Style>
 
   <Style Selector="TextBlock.muted">
-    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
   </Style>
 
   <Style Selector="TextBlock.onDark">
-    <Setter Property="Foreground" Value="{StaticResource TextOnDarkBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnDarkBrush}" />
   </Style>
 
   <Style Selector="TextBlock.onDarkMuted">
-    <Setter Property="Foreground" Value="{StaticResource TextOnDarkMutedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextOnDarkMutedBrush}" />
   </Style>
 
   <Style Selector="Border.panel">
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="14" />
   </Style>
 
   <Style Selector="Border.notice">
-    <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="12" />
@@ -62,67 +94,67 @@
     <Setter Property="Padding" Value="14,6" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Background" Value="{StaticResource ControlBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ControlBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
   </Style>
 
   <Style Selector="Button:pointerover">
-    <Setter Property="Background" Value="{StaticResource ControlHoverBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource ControlHoverBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlHoverBorderBrush}" />
   </Style>
 
   <Style Selector="Button:pressed">
-    <Setter Property="Background" Value="{StaticResource ControlPressedBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ControlPressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
   </Style>
 
   <Style Selector="Button:disabled">
-    <Setter Property="Background" Value="{StaticResource ControlDisabledBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource ControlDisabledTextBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource ControlDisabledBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource ControlDisabledTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}" />
   </Style>
 
   <Style Selector="Button.primary">
-    <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
     <Setter Property="Foreground" Value="White" />
-    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
   </Style>
 
   <Style Selector="Button.primary:pointerover">
-    <Setter Property="Background" Value="{StaticResource PrimaryHoverBrush}" />
+    <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}" />
     <Setter Property="Foreground" Value="White" />
-    <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryHoverBrush}" />
   </Style>
 
   <Style Selector="Button.danger">
-    <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
     <Setter Property="Foreground" Value="White" />
-    <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
   </Style>
 
   <Style Selector="Button.danger:pointerover">
-    <Setter Property="Background" Value="{StaticResource DangerHoverBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerHoverBrush}" />
     <Setter Property="Foreground" Value="White" />
-    <Setter Property="BorderBrush" Value="{StaticResource DangerHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerHoverBrush}" />
   </Style>
 
   <Style Selector="ComboBox">
     <Setter Property="MinHeight" Value="34" />
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
   </Style>
 
   <Style Selector="TextBox">
     <Setter Property="MinHeight" Value="34" />
-    <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-    <Setter Property="BorderBrush" Value="{StaticResource ControlBorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
   </Style>
 
   <Style Selector="CheckBox">
-    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
   </Style>
 </Styles>

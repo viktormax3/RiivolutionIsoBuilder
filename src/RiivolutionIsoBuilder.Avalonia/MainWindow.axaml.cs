@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using RiivolutionIsoBuilder.Riivolution;
 
 namespace RiivolutionIsoBuilder.Avalonia;
@@ -11,7 +12,12 @@ public partial class MainWindow : Window
     private readonly PatcherEngine engine;
     private readonly List<GameImage> gameImages = [];
     private readonly List<object> modChoices = [];
+    private readonly List<ComboBox> xmlOptionCombos = [];
     private CancellationTokenSource? operationCts;
+    private string? currentXmlFile;
+    private RiivolutionDocument? currentXmlDocument;
+    private int? currentXmlModIndex;
+    private bool updatingXmlOptions;
 
     public MainWindow()
     {
@@ -23,6 +29,8 @@ public partial class MainWindow : Window
         ProjectRootText.Text = paths.RootDirectory;
         GamesFolderText.Text = paths.GamesDirectory;
         ToolsFolderText.Text = paths.ResolveToolsDirectory();
+        ThemeCombo.ItemsSource = new[] { "System", "Light", "Dark" };
+        ThemeCombo.SelectedIndex = 0;
         ExtensionCombo.ItemsSource = BuilderDefaults.OutputExtensions;
         ExtensionCombo.SelectedIndex = 0;
 
@@ -70,6 +78,21 @@ public partial class MainWindow : Window
     {
         operationCts?.Cancel();
         AppendLog("Cancellation requested.");
+    }
+
+    private void ThemeCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (global::Avalonia.Application.Current is null)
+        {
+            return;
+        }
+
+        global::Avalonia.Application.Current.RequestedThemeVariant = ThemeCombo.SelectedItem switch
+        {
+            "Light" => ThemeVariant.Light,
+            "Dark" => ThemeVariant.Dark,
+            _ => ThemeVariant.Default
+        };
     }
 
     private void GamesCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -175,23 +198,12 @@ public partial class MainWindow : Window
         try
         {
             var document = RiivolutionPatchReader.ReadDocument(xmlFile, game.Region.Name);
-            var choices = await PromptRiivolutionChoicesAsync(document);
-            if (choices is null)
-            {
-                return;
-            }
-
-            var mod = engine.LoadNativeRiivolutionMod(xmlFile, game, choices, document);
-            AddOrSelectMod(mod);
-            OutputIdBox.Text = engine.SuggestNativeOutputId(mod, game);
-            AppendLog($"XML loaded: {mod.ShortName} - {xmlFile}");
+            currentXmlFile = xmlFile;
+            currentXmlDocument = document;
+            BuildXmlOptionControls(document);
+            RefreshLoadedXmlMod();
+            AppendLog($"XML loaded: {document.DisplayName} - {xmlFile}");
             EmptyStateText.Text = "Riivolution XML loaded. Review the output ID and build when ready.";
-            if (!string.IsNullOrWhiteSpace(mod.ChoiceSummary))
-            {
-                AppendLog($"XML choices: {mod.ChoiceSummary}");
-            }
-
-            AppendLog($"Active patches: {string.Join(", ", mod.Plan.ActivePatches.Select(patch => patch.Id))}");
         }
         catch (Exception ex)
         {
@@ -283,6 +295,7 @@ public partial class MainWindow : Window
         if (GamesCombo.SelectedItem is not GameImage game)
         {
             modChoices.Clear();
+            ClearXmlOptions();
             RefreshModList();
             OutputIdBox.Text = "";
             SelectedGameText.Text = "No game selected.";
@@ -291,6 +304,7 @@ public partial class MainWindow : Window
 
         SelectedGameText.Text = $"{game.GameId} - {game.Game.DisplayName} ({game.Region.Name})";
         modChoices.Clear();
+        ClearXmlOptions();
         modChoices.AddRange(engine.GetAvailableMods(game.Game));
         RefreshModList();
         RefreshOutputIdSuggestion();
@@ -339,6 +353,87 @@ public partial class MainWindow : Window
         modChoices.Add(mod);
         RefreshModList();
         ModsCombo.SelectedIndex = modChoices.Count - 1;
+    }
+
+    private void BuildXmlOptionControls(RiivolutionDocument document)
+    {
+        updatingXmlOptions = true;
+        xmlOptionCombos.Clear();
+        XmlOptionsPanel.Children.Clear();
+
+        foreach (var option in document.Sections.SelectMany(section => section.Options))
+        {
+            var panel = new StackPanel { Spacing = 6 };
+            panel.Children.Add(new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(option.Name) ? option.Id : option.Name,
+                Classes = { "label" }
+            });
+
+            var combo = new ComboBox
+            {
+                ItemsSource = new[] { "Disabled" }.Concat(option.Choices.Select(choice => choice.Name)).ToList()
+            };
+            var defaultIndex = option.DefaultChoice;
+            combo.SelectedIndex = defaultIndex >= 0 && defaultIndex < option.Choices.Count + 1 ? defaultIndex : 0;
+            combo.SelectionChanged += XmlOptionCombo_OnSelectionChanged;
+
+            panel.Children.Add(combo);
+            XmlOptionsPanel.Children.Add(panel);
+            xmlOptionCombos.Add(combo);
+        }
+
+        XmlOptionsPanelHost.IsVisible = xmlOptionCombos.Count > 0;
+        updatingXmlOptions = false;
+    }
+
+    private void XmlOptionCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!updatingXmlOptions)
+        {
+            RefreshLoadedXmlMod();
+        }
+    }
+
+    private void RefreshLoadedXmlMod()
+    {
+        if (GamesCombo.SelectedItem is not GameImage game || currentXmlFile is null || currentXmlDocument is null)
+        {
+            return;
+        }
+
+        var choices = xmlOptionCombos.Select(combo => (int?)(combo.SelectedIndex - 1)).ToList();
+        var mod = engine.LoadNativeRiivolutionMod(currentXmlFile, game, choices, currentXmlDocument);
+        if (currentXmlModIndex is { } index && index >= 0 && index < modChoices.Count)
+        {
+            modChoices[index] = mod;
+        }
+        else
+        {
+            modChoices.Add(mod);
+            currentXmlModIndex = modChoices.Count - 1;
+        }
+
+        RefreshModList();
+        ModsCombo.SelectedIndex = currentXmlModIndex.Value;
+        OutputIdBox.Text = engine.SuggestNativeOutputId(mod, game);
+
+        if (!string.IsNullOrWhiteSpace(mod.ChoiceSummary))
+        {
+            AppendLog($"XML choices: {mod.ChoiceSummary}");
+        }
+
+        AppendLog($"Active patches: {string.Join(", ", mod.Plan.ActivePatches.Select(patch => patch.Id))}");
+    }
+
+    private void ClearXmlOptions()
+    {
+        currentXmlFile = null;
+        currentXmlDocument = null;
+        currentXmlModIndex = null;
+        xmlOptionCombos.Clear();
+        XmlOptionsPanel.Children.Clear();
+        XmlOptionsPanelHost.IsVisible = false;
     }
 
     private void RefreshGameList()

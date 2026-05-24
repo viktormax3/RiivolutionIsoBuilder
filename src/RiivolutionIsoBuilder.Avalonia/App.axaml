@@ -1,10 +1,10 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="RiivolutionIsoBuilder.Avalonia.App"
-             RequestedThemeVariant="Light">
+             RequestedThemeVariant="Default">
 
-    <Application.Styles>
-        <FluentTheme />
-        <StyleInclude Source="avares://RiivolutionIsoBuilder.Avalonia/Styles/AppTheme.axaml" />
-    </Application.Styles>
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://RiivolutionIsoBuilder.Avalonia/Styles/AppTheme.axaml" />
+  </Application.Styles>
 </Application>
