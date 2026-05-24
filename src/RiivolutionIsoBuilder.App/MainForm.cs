@@ -112,7 +112,7 @@ public sealed class MainForm : Form
         AddField(controls, "ID6", outputIdBox, 0, 1);
 
         extensionCombo.DropDownStyle = ComboBoxStyle.DropDownList;
-        extensionCombo.Items.AddRange(["wbfs", "iso", "ciso", "wdf", "wia"]);
+        extensionCombo.Items.AddRange(BuilderDefaults.OutputExtensions.Cast<object>().ToArray());
         extensionCombo.SelectedIndex = 0;
         AddField(controls, "Salida", extensionCombo, 1, 1);
 
@@ -259,7 +259,7 @@ public sealed class MainForm : Form
         using var dialog = new OpenFileDialog
         {
             Title = "Seleccionar backup de Wii",
-            Filter = "Imagenes Wii|*.iso;*.wbfs;*.ciso;*.wdf;*.wia|Todos los archivos|*.*",
+            Filter = $"Imagenes Wii|{CreateExtensionFilter(BuilderDefaults.InputImageExtensions)}|Todos los archivos|*.*",
             CheckFileExists = true
         };
 
@@ -394,7 +394,7 @@ public sealed class MainForm : Form
             var patch = new ManualGctPatch(dialog.FileName, displayName);
             modsCombo.Items.Add(patch);
             modsCombo.SelectedItem = patch;
-            outputIdBox.Text = SuggestPatchOutputId(displayName, game);
+            outputIdBox.Text = OutputIdSuggester.ForManualPatch(displayName, game);
             AppendLog($"GCT cargado: {displayName} - {dialog.FileName}");
             return Task.CompletedTask;
         });
@@ -440,13 +440,13 @@ public sealed class MainForm : Form
 
         if (modsCombo.SelectedItem is ManualGctPatch gctPatch)
         {
-            outputIdBox.Text = SuggestPatchOutputId(gctPatch.DisplayName, game);
+            outputIdBox.Text = OutputIdSuggester.ForManualPatch(gctPatch.DisplayName, game);
             return;
         }
 
         if (modsCombo.SelectedItem is ModDefinition mod)
         {
-            outputIdBox.Text = $"{mod.OutputIdPrefix ?? mod.Id}{game.GameId[3..6]}".ToUpperInvariant();
+            outputIdBox.Text = OutputIdSuggester.ForCatalogMod(mod, game);
         }
     }
 
@@ -552,10 +552,9 @@ public sealed class MainForm : Form
         return combos.Select(combo => (int?)(combo.SelectedIndex - 1)).ToList();
     }
 
-    private static string SuggestPatchOutputId(string name, GameImage game)
+    private static string CreateExtensionFilter(IEnumerable<string> extensions)
     {
-        var prefix = new string(name.Where(char.IsLetterOrDigit).Take(3).ToArray()).ToUpperInvariant().PadRight(3, 'G');
-        return $"{prefix}{game.GameId[3..6]}";
+        return string.Join(';', extensions.Select(extension => $"*.{extension}"));
     }
 
     private async Task RunUiTaskAsync(Func<CancellationToken, Task> task)

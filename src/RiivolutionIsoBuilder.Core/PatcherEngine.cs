@@ -85,15 +85,13 @@ public sealed class PatcherEngine
 
     public string SuggestNativeOutputId(NativeRiivolutionMod mod, GameImage game)
     {
-        var patchId = mod.Plan.ActivePatches.FirstOrDefault()?.Id ?? Path.GetFileNameWithoutExtension(mod.XmlFile);
-        var prefix = new string(patchId.Where(char.IsLetterOrDigit).Take(3).ToArray()).ToUpperInvariant().PadRight(3, 'X');
-        return $"{prefix}{game.GameId[3..6]}";
+        return OutputIdSuggester.ForNativeRiivolutionMod(mod, game);
     }
 
     public BuildPlan CreatePlan(GameImage game, ModDefinition mod, BuildOptions options)
     {
         var suffix = game.GameId[3..6];
-        var outputId = $"{mod.OutputIdPrefix ?? mod.Id}{suffix}";
+        var outputId = OutputIdSuggester.ForCatalogMod(mod, game);
         if (suffix.StartsWith('K') || mod.UnsupportedOutputIds.Contains(outputId, StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Este mod no esta disponible para la region seleccionada.");
@@ -161,7 +159,7 @@ public sealed class PatcherEngine
 
     public NativeBuildPlan CreateNativePlan(GameImage game, NativeRiivolutionMod mod, string outputId, BuildOptions options)
     {
-        outputId = NormalizeOutputId(outputId);
+        outputId = OutputIdSuggester.Normalize(outputId);
         var outputFolder = Path.Combine(paths.OutputDirectory, $"{mod.DisplayName} [{outputId}]");
         return new NativeBuildPlan(
             game,
@@ -175,7 +173,7 @@ public sealed class PatcherEngine
 
     public GctBuildPlan CreateGctPlan(GameImage game, ManualGctPatch patch, string outputId, BuildOptions options)
     {
-        outputId = NormalizeOutputId(outputId);
+        outputId = OutputIdSuggester.Normalize(outputId);
         var outputFolder = Path.Combine(paths.OutputDirectory, $"{patch.DisplayName} [{outputId}]");
         return new GctBuildPlan(
             game,
@@ -790,17 +788,6 @@ public sealed class PatcherEngine
         }
 
         return string.Join("; ", parts);
-    }
-
-    private static string NormalizeOutputId(string outputId)
-    {
-        outputId = new string(outputId.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
-        if (outputId.Length != 6)
-        {
-            throw new InvalidOperationException("El ID6 de salida debe tener exactamente 6 caracteres alfanumericos.");
-        }
-
-        return outputId;
     }
 
     private string ResolveWitPath(string path)
