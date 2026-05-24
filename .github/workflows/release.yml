@@ -1,17 +1,17 @@
-name: Build Windows Packages
+name: Release Windows Packages
 
 on:
   push:
-    branches:
-      - master
-      - main
-      - develop
-  pull_request:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    name: Windows GUI packages
+  release:
+    name: Publish Windows release
     runs-on: windows-latest
 
     steps:
@@ -37,16 +37,9 @@ jobs:
         shell: pwsh
         run: ./scripts/package-windows.ps1 -Configuration Release -OutputRoot artifacts -Runtime win-x64 -FrameworkDependent
 
-      - name: Upload standalone package
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
         with:
-          name: RiivolutionIsoBuilder-win-x64-standalone
-          path: artifacts/RiivolutionIsoBuilder-win-x64-standalone.zip
-          if-no-files-found: error
-
-      - name: Upload framework-dependent package
-        uses: actions/upload-artifact@v4
-        with:
-          name: RiivolutionIsoBuilder-win-x64-framework-dependent
-          path: artifacts/RiivolutionIsoBuilder-win-x64-framework-dependent.zip
-          if-no-files-found: error
+          files: |
+            artifacts/RiivolutionIsoBuilder-win-x64-standalone.zip
+            artifacts/RiivolutionIsoBuilder-win-x64-framework-dependent.zip

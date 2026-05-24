@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [string]$OutputRoot = "artifacts",
@@ -9,10 +9,11 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repoRoot "src/RiivolutionIsoBuilder.App/RiivolutionIsoBuilder.App.csproj"
-$runtimeLabel = if ([string]::IsNullOrWhiteSpace($Runtime) -or $Runtime -eq "portable") { "portable" } else { $Runtime }
-$publishDir = Join-Path $repoRoot "publish/$runtimeLabel"
-$packageName = "RiivolutionIsoBuilder-$runtimeLabel"
-$packageDir = Join-Path $repoRoot "$OutputRoot/$packageName-package"
+$runtimeLabel = if ([string]::IsNullOrWhiteSpace($Runtime)) { "win-x64" } else { $Runtime }
+$variant = if ($FrameworkDependent) { "framework-dependent" } else { "standalone" }
+$publishDir = Join-Path $repoRoot "publish/$runtimeLabel-$variant"
+$packageName = "RiivolutionIsoBuilder-$runtimeLabel-$variant"
+$packageDir = Join-Path $repoRoot "$OutputRoot/$packageName"
 $zipPath = Join-Path $repoRoot "$OutputRoot/$packageName.zip"
 
 function Invoke-DotNet {
@@ -25,32 +26,37 @@ function Invoke-DotNet {
 Remove-Item -LiteralPath $publishDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $packageDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force $publishDir, $packageDir | Out-Null
 
-$isPortable = $runtimeLabel -eq "portable"
-$selfContained = if ($FrameworkDependent -or $isPortable) { "false" } else { "true" }
+Invoke-DotNet restore $project --runtime $runtimeLabel --force
 
-if ($isPortable) {
-    Invoke-DotNet restore $project
+if ($FrameworkDependent) {
     Invoke-DotNet publish $project `
         --configuration $Configuration `
+        --runtime $runtimeLabel `
         --self-contained false `
         --no-restore `
-        -p:PublishSingleFile=false `
-        -p:PublishReadyToRun=false `
+        "-p:PublishSingleFile=true" `
+        "-p:PublishReadyToRun=false" `
+        "-p:DebugType=None" `
+        "-p:DebugSymbols=false" `
         --output $publishDir
 } else {
-    Invoke-DotNet restore $project --runtime $Runtime
     Invoke-DotNet publish $project `
         --configuration $Configuration `
-        --runtime $Runtime `
-        --self-contained $selfContained `
+        --runtime $runtimeLabel `
+        --self-contained true `
         --no-restore `
-        -p:PublishSingleFile=false `
-        -p:PublishReadyToRun=false `
+        "-p:PublishSingleFile=true" `
+        "-p:EnableCompressionInSingleFile=true" `
+        "-p:IncludeNativeLibrariesForSelfExtract=true" `
+        "-p:PublishReadyToRun=false" `
+        "-p:PublishTrimmed=false" `
+        "-p:DebugType=None" `
+        "-p:DebugSymbols=false" `
         --output $publishDir
 }
 
-New-Item -ItemType Directory -Force $packageDir | Out-Null
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $packageDir -Recurse -Force
 
 $packageDataDir = Join-Path $packageDir "data"
@@ -61,11 +67,9 @@ foreach ($dataChild in @("banner", "catalog", "gct", "tools", "xml")) {
         Copy-Item -LiteralPath $source -Destination (Join-Path $packageDataDir $dataChild) -Recurse -Force
     }
 }
-New-Item -ItemType Directory -Force (Join-Path $packageDataDir "mods") | Out-Null
-if (Test-Path -LiteralPath (Join-Path $repoRoot "data/mods/.gitkeep")) {
-    Copy-Item -LiteralPath (Join-Path $repoRoot "data/mods/.gitkeep") -Destination (Join-Path $packageDataDir "mods/.gitkeep") -Force
-}
+
 New-Item -ItemType Directory -Force `
+    (Join-Path $packageDataDir "mods"), `
     (Join-Path $packageDir "games"), `
     (Join-Path $packageDir "output"), `
     (Join-Path $packageDir "work") | Out-Null
@@ -75,15 +79,14 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $packageDi
 $notes = @"
 Riivolution ISO Builder
 
-1. Coloca tus backups .iso/.wbfs/.ciso/.wdf/.wia en la carpeta games, o usa el boton Elegir ISO.
-2. Coloca archivos .zip de mods en data/mods y registralos en data/catalog/mods.json.
-3. Ejecuta RiivolutionIsoBuilder.exe.
+1. Put your .iso/.wbfs/.ciso/.wdf/.wia backups in the games folder, or choose one from the app.
+2. Put mod .zip files in data/mods and register them in data/catalog/mods.json.
+3. Run RiivolutionIsoBuilder.exe.
 
-Este paquete incluye wit/wstrt y sus DLLs en data/tools.
+This package includes wit/wstrt and their DLLs in data/tools.
 "@
 
 Set-Content -LiteralPath (Join-Path $packageDir "LEEME.txt") -Value $notes -Encoding UTF8
 
 Compress-Archive -LiteralPath $packageDir -DestinationPath $zipPath -Force
 Write-Host "Package: $zipPath"
-
