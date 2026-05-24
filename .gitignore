@@ -6,6 +6,7 @@ output/
 !output/.gitkeep
 artifacts/
 dist/
+wiimms/
 publish/
 *.user
 data/mods/*
