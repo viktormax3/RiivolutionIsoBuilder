@@ -60,6 +60,18 @@ public partial class MainWindow : Window
         await BrowseGctAsync();
     }
 
+    private void ClearLogButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        LogBox.Text = "";
+        AppendLog("Log cleared.");
+    }
+
+    private void CancelButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        operationCts?.Cancel();
+        AppendLog("Cancellation requested.");
+    }
+
     private void GamesCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         RefreshMods();
@@ -273,9 +285,11 @@ public partial class MainWindow : Window
             modChoices.Clear();
             RefreshModList();
             OutputIdBox.Text = "";
+            SelectedGameText.Text = "No game selected.";
             return;
         }
 
+        SelectedGameText.Text = $"{game.GameId} - {game.Game.DisplayName} ({game.Region.Name})";
         modChoices.Clear();
         modChoices.AddRange(engine.GetAvailableMods(game.Game));
         RefreshModList();
@@ -293,6 +307,7 @@ public partial class MainWindow : Window
         if (GamesCombo.SelectedItem is not GameImage game)
         {
             OutputIdBox.Text = "";
+            SelectedModText.Text = "No mod selected.";
             return;
         }
 
@@ -302,6 +317,13 @@ public partial class MainWindow : Window
             ManualGctPatch gctPatch => OutputIdSuggester.ForManualPatch(gctPatch.DisplayName, game),
             ModDefinition mod => OutputIdSuggester.ForCatalogMod(mod, game),
             _ => ""
+        };
+        SelectedModText.Text = ModsCombo.SelectedItem switch
+        {
+            NativeRiivolutionMod nativeMod => $"Riivolution XML: {nativeMod.DisplayName}",
+            ManualGctPatch gctPatch => $"GCT patch: {gctPatch.DisplayName}",
+            ModDefinition mod => $"Catalog mod: {mod.DisplayName}",
+            _ => "No mod selected."
         };
     }
 
@@ -347,6 +369,8 @@ public partial class MainWindow : Window
         BuildButton.IsEnabled = !busy;
         XmlButton.IsEnabled = !busy;
         GctButton.IsEnabled = !busy;
+        ClearLogButton.IsEnabled = !busy;
+        CancelButton.IsEnabled = busy;
         GamesCombo.IsEnabled = !busy;
         ModsCombo.IsEnabled = !busy;
         ExtensionCombo.IsEnabled = !busy;
