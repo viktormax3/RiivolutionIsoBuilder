@@ -24,28 +24,69 @@
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="Padding" Value="14,6" />
       <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="#E7ECF3" />
+      <Setter Property="Foreground" Value="#172033" />
+      <Setter Property="BorderBrush" Value="#B7C2D0" />
+    </Style>
+    <Style Selector="Button:pointerover">
+      <Setter Property="Background" Value="#D9E2EE" />
+      <Setter Property="Foreground" Value="#172033" />
+      <Setter Property="BorderBrush" Value="#99A8BA" />
+    </Style>
+    <Style Selector="Button:pressed">
+      <Setter Property="Background" Value="#C8D4E3" />
+      <Setter Property="Foreground" Value="#172033" />
+    </Style>
+    <Style Selector="Button:disabled">
+      <Setter Property="Background" Value="#EEF1F5" />
+      <Setter Property="Foreground" Value="#8A95A5" />
+      <Setter Property="BorderBrush" Value="#D6DDE7" />
+    </Style>
+    <Style Selector="Button.secondary">
+      <Setter Property="Background" Value="#E7ECF3" />
+      <Setter Property="Foreground" Value="#172033" />
+      <Setter Property="BorderBrush" Value="#B7C2D0" />
+    </Style>
+    <Style Selector="Button.secondary:pointerover">
+      <Setter Property="Background" Value="#D9E2EE" />
+      <Setter Property="Foreground" Value="#172033" />
+      <Setter Property="BorderBrush" Value="#99A8BA" />
     </Style>
     <Style Selector="Button.primary">
       <Setter Property="Background" Value="#166A4D" />
       <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="#166A4D" />
     </Style>
     <Style Selector="Button.primary:pointerover">
       <Setter Property="Background" Value="#1E7A5A" />
       <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="#1E7A5A" />
     </Style>
     <Style Selector="Button.danger">
       <Setter Property="Background" Value="#8A2E2E" />
       <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="#8A2E2E" />
     </Style>
     <Style Selector="Button.danger:pointerover">
       <Setter Property="Background" Value="#A33A3A" />
       <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="#A33A3A" />
     </Style>
     <Style Selector="ComboBox">
       <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Background" Value="White" />
+      <Setter Property="Foreground" Value="#172033" />
+      <Setter Property="BorderBrush" Value="#B7C2D0" />
     </Style>
     <Style Selector="TextBox">
       <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Background" Value="White" />
+      <Setter Property="Foreground" Value="#172033" />
+      <Setter Property="BorderBrush" Value="#B7C2D0" />
+    </Style>
+    <Style Selector="CheckBox">
+      <Setter Property="Foreground" Value="#172033" />
     </Style>
   </Window.Styles>
 
@@ -77,11 +118,11 @@
     <Border Grid.Row="2" Classes="panel">
       <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="12">
         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8">
-          <Button x:Name="ScanButton" Content="Scan games" MinWidth="110" Click="ScanButton_OnClick" />
-          <Button x:Name="BrowseButton" Content="Browse ISO" MinWidth="110" Click="BrowseButton_OnClick" />
-          <Button x:Name="XmlButton" Content="Browse XML" MinWidth="110" Click="XmlButton_OnClick" />
-          <Button x:Name="GctButton" Content="Browse GCT" MinWidth="110" Click="GctButton_OnClick" />
-          <Button x:Name="ClearLogButton" Content="Clear log" MinWidth="96" Click="ClearLogButton_OnClick" />
+          <Button x:Name="ScanButton" Classes="secondary" Content="Scan games" MinWidth="110" Click="ScanButton_OnClick" />
+          <Button x:Name="BrowseButton" Classes="secondary" Content="Browse ISO" MinWidth="110" Click="BrowseButton_OnClick" />
+          <Button x:Name="XmlButton" Classes="secondary" Content="Browse XML" MinWidth="110" Click="XmlButton_OnClick" />
+          <Button x:Name="GctButton" Classes="secondary" Content="Browse GCT" MinWidth="110" Click="GctButton_OnClick" />
+          <Button x:Name="ClearLogButton" Classes="secondary" Content="Clear log" MinWidth="96" Click="ClearLogButton_OnClick" />
         </StackPanel>
 
         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8">
