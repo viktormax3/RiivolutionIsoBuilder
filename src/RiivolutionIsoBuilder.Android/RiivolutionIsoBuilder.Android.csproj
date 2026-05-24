@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SupportedOSPlatformVersion>23.0</SupportedOSPlatformVersion>
+    <ApplicationId>com.viktormax3.riivolutionisobuilder</ApplicationId>
+    <ApplicationTitle>Riivolution ISO Builder</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <AndroidPackageFormats>apk</AndroidPackageFormats>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Android" Version="11.3.16" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RiivolutionIsoBuilder.UI\RiivolutionIsoBuilder.UI.csproj" />
+  </ItemGroup>
+</Project>

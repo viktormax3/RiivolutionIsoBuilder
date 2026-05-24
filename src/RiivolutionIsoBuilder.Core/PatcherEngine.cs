@@ -77,6 +77,7 @@ public sealed class PatcherEngine
     public NativeRiivolutionMod LoadNativeRiivolutionMod(string xmlFile, GameImage game, IReadOnlyList<int?> choiceIndexes, RiivolutionDocument? document = null)
     {
         document ??= RiivolutionPatchReader.ReadDocument(xmlFile, game.Region.Name);
+        ValidateNativeDocumentForGame(document, game);
         var plan = RiivolutionPatchPlanner.CreatePlan(document, game.GameId, choiceIndexes);
         var sourceRoot = ResolveNativeSourceRoot(xmlFile);
         var choiceSummary = CreateChoiceSummary(document, choiceIndexes);
@@ -788,6 +789,66 @@ public sealed class PatcherEngine
         }
 
         return string.Join("; ", parts);
+    }
+
+    private static void ValidateNativeDocumentForGame(RiivolutionDocument document, GameImage game)
+    {
+        var id = document.DiscId;
+        if (id is null)
+        {
+            return;
+        }
+
+        if (!MatchesGame(id.Game, game.GameId))
+        {
+            throw new InvalidOperationException($"Este XML es para el juego '{id.Game}', pero la imagen seleccionada es '{game.GameId}'.");
+        }
+
+        if (!MatchesDeveloper(id.Developer, game.GameId))
+        {
+            throw new InvalidOperationException($"Este XML es para el maker '{id.Developer}', pero la imagen seleccionada es '{game.GameId}'.");
+        }
+
+        if (!MatchesRegion(id.Regions, game))
+        {
+            throw new InvalidOperationException($"Este XML no esta habilitado para la region '{game.Region.Name}' ({game.GameId}).");
+        }
+    }
+
+    private static bool MatchesGame(string expected, string gameId)
+    {
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            return true;
+        }
+
+        var length = Math.Min(expected.Length, gameId.Length);
+        return length > 0 && gameId.AsSpan(0, length).Equals(expected.AsSpan(0, length), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesDeveloper(string expected, string gameId)
+    {
+        if (string.IsNullOrWhiteSpace(expected) || gameId.Length < 6)
+        {
+            return true;
+        }
+
+        return gameId[4..6].Equals(expected, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesRegion(IReadOnlyList<string> expectedRegions, GameImage game)
+    {
+        if (expectedRegions.Count == 0)
+        {
+            return true;
+        }
+
+        var regionCharacter = game.GameId.Length >= 4 ? game.GameId[3].ToString() : "";
+        return expectedRegions.Any(region =>
+            region.Equals(regionCharacter, StringComparison.OrdinalIgnoreCase)
+            || region.Equals(game.Region.IdCharacter, StringComparison.OrdinalIgnoreCase)
+            || region.Equals(game.Region.Code, StringComparison.OrdinalIgnoreCase)
+            || region.Equals(game.Region.Name, StringComparison.OrdinalIgnoreCase));
     }
 
     private string ResolveWitPath(string path)

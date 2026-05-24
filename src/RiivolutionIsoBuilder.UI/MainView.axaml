@@ -1,0 +1,167 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="RiivolutionIsoBuilder.UI.MainView"
+             Background="{DynamicResource AppBackgroundBrush}">
+
+  <Grid RowDefinitions="Auto,Auto,*" Margin="16" RowSpacing="10">
+    <Border Grid.Row="0" Background="{DynamicResource HeaderBrush}" Padding="16,12" CornerRadius="4">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+        <StackPanel Spacing="3">
+          <TextBlock Text="Riivolution ISO Builder" FontSize="24" FontWeight="Bold" Foreground="White" />
+          <TextBlock x:Name="StatusText" Text="Starting..." Classes="onDarkMuted" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Width="132" Spacing="4" VerticalAlignment="Center">
+          <TextBlock Text="Theme" Classes="onDarkMuted" FontSize="12" />
+          <ComboBox x:Name="ThemeCombo" SelectionChanged="ThemeCombo_OnSelectionChanged" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1" Classes="panel compact">
+      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="12" RowSpacing="10">
+        <WrapPanel>
+          <Button x:Name="ScanButton" Classes="secondary toolbar" Content="Scan games" Click="ScanButton_OnClick" />
+          <Button x:Name="BrowseButton" Classes="secondary toolbar" Content="Browse ISO" Click="BrowseButton_OnClick" />
+          <Button x:Name="XmlButton" Classes="secondary toolbar" Content="Browse XML" Click="XmlButton_OnClick" />
+          <Button x:Name="GctButton" Classes="secondary toolbar" Content="Browse GCT" Click="GctButton_OnClick" />
+          <Button x:Name="ClearLogButton" Classes="secondary toolbar" Content="Clear log" Click="ClearLogButton_OnClick" />
+        </WrapPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+          <Button x:Name="CancelButton" Classes="danger" Content="Cancel" MinWidth="88" Click="CancelButton_OnClick" IsEnabled="False" />
+          <Button x:Name="BuildButton" Classes="primary" Content="Build" MinWidth="108" Click="BuildButton_OnClick" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*" ColumnSpacing="14">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="pathLabel" Text="Project" />
+            <TextBlock x:Name="ProjectRootText" Classes="muted small" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Spacing="2">
+            <TextBlock Classes="pathLabel" Text="Games" />
+            <TextBlock x:Name="GamesFolderText" Classes="muted small" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="2">
+            <TextBlock Classes="pathLabel" Text="Tools" />
+            <TextBlock x:Name="ToolsFolderText" Classes="muted small" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Grid x:Name="WorkflowGrid" Grid.Row="2" ColumnDefinitions="430,*" RowDefinitions="*" ColumnSpacing="12" RowSpacing="10">
+      <Grid x:Name="WorkflowLeft" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+        <Border Classes="panel">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="sectionTitle" Text="Game" />
+            <ComboBox x:Name="GamesCombo" SelectionChanged="GamesCombo_OnSelectionChanged">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock x:Name="SelectedGameText" Classes="muted" Text="No game selected." TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Classes="panel">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="sectionTitle" Text="Patch" />
+            <ComboBox x:Name="ModsCombo" SelectionChanged="ModsCombo_OnSelectionChanged">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock x:Name="SelectedModText" Classes="muted" Text="No mod selected." TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Classes="panel">
+          <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,112" ColumnSpacing="10" RowSpacing="10">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="label" Text="Output ID" />
+              <TextBox x:Name="OutputIdBox" MaxLength="6" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Classes="label" Text="Format" />
+              <ComboBox x:Name="ExtensionCombo" />
+            </StackPanel>
+
+            <CheckBox Grid.Row="1"
+                      Grid.ColumnSpan="2"
+                      x:Name="UseCustomBannerCheck"
+                      Content="Use custom banner"
+                      IsChecked="True" />
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Classes="notice">
+          <TextBlock x:Name="EmptyStateText"
+                     TextWrapping="Wrap"
+                     Classes="muted"
+                     Text="Waiting for scan results..." />
+        </Border>
+      </Grid>
+
+      <Grid x:Name="WorkflowRight" Grid.Column="1" RowDefinitions="*,Auto" RowSpacing="10">
+        <Border x:Name="XmlOptionsPanelHost" Classes="panel" IsVisible="False">
+          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+            <TextBlock Classes="sectionTitle" Text="Riivolution XML Options" />
+            <ScrollViewer Grid.Row="1">
+              <StackPanel x:Name="XmlOptionsPanel" Spacing="8" />
+            </ScrollViewer>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Background="{DynamicResource LogBackgroundBrush}" CornerRadius="4" Padding="12">
+          <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Log" Foreground="{DynamicResource LogTextBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <ProgressBar x:Name="Progress"
+                             IsIndeterminate="True"
+                             IsVisible="False"
+                             Width="130"
+                             Height="16"
+                             VerticalAlignment="Center" />
+              </StackPanel>
+
+              <ToggleButton Grid.Column="1"
+                            x:Name="LogToggleButton"
+                            Classes="logToggle"
+                            Content="Show"
+                            IsChecked="False"
+                            Click="LogToggleButton_OnClick" />
+            </Grid>
+
+            <TextBlock Grid.Row="1"
+                       x:Name="ActionHintText"
+                       Margin="0,6,0,8"
+                       Foreground="{DynamicResource TextOnDarkMutedBrush}"
+                       Text="Scan starts automatically. Select a game, then choose a catalog mod or load XML/GCT." />
+
+            <TextBox x:Name="LogBox"
+                     Grid.Row="2"
+                     IsVisible="False"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     FontFamily="Consolas"
+                     FontSize="13"
+                     Background="{DynamicResource LogBackgroundBrush}"
+                     Foreground="{DynamicResource LogTextBrush}"
+                     BorderThickness="0"
+                     Height="220"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

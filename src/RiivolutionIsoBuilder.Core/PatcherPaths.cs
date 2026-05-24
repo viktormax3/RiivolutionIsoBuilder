@@ -17,6 +17,7 @@ public sealed class PatcherPaths
         GamesDirectory = Path.Combine(rootDirectory, "games");
         OutputDirectory = Path.Combine(rootDirectory, "output");
         TempDirectory = Path.Combine(rootDirectory, "work");
+        EnsureWritableDirectories();
     }
 
     public string RootDirectory { get; }
@@ -55,6 +56,19 @@ public sealed class PatcherPaths
 
     public static PatcherPaths Discover()
     {
+        var overrideRoot = Environment.GetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_ROOT");
+        if (!string.IsNullOrWhiteSpace(overrideRoot))
+        {
+            return new PatcherPaths(Path.GetFullPath(overrideRoot));
+        }
+
+        if (OperatingSystem.IsAndroid())
+        {
+            return new PatcherPaths(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "RiivolutionIsoBuilder"));
+        }
+
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
@@ -203,5 +217,18 @@ public sealed class PatcherPaths
         }
 
         return OperatingSystem.IsWindows() ? $"{toolName}.exe" : toolName;
+    }
+
+    private void EnsureWritableDirectories()
+    {
+        Directory.CreateDirectory(DataDirectory);
+        Directory.CreateDirectory(ToolsDirectory);
+        Directory.CreateDirectory(RiivDirectory);
+        Directory.CreateDirectory(GctDirectory);
+        Directory.CreateDirectory(XmlDirectory);
+        Directory.CreateDirectory(BannerDirectory);
+        Directory.CreateDirectory(Path.GetDirectoryName(CatalogFile)!);
+        Directory.CreateDirectory(GamesDirectory);
+        Directory.CreateDirectory(OutputDirectory);
     }
 }

@@ -1,12 +1,14 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using RiivolutionIsoBuilder.Riivolution;
 
-namespace RiivolutionIsoBuilder.Avalonia;
+namespace RiivolutionIsoBuilder.UI;
 
-public partial class MainWindow : Window
+public partial class MainView : UserControl
 {
     private readonly PatcherPaths paths;
     private readonly PatcherEngine engine;
@@ -18,14 +20,15 @@ public partial class MainWindow : Window
     private RiivolutionDocument? currentXmlDocument;
     private int? currentXmlModIndex;
     private bool updatingXmlOptions;
+    private bool compactLayout;
 
-    public MainWindow()
+    public MainView()
     {
         InitializeComponent();
 
         paths = PatcherPaths.Discover();
         engine = new PatcherEngine(paths, AppendLog);
-        StatusText.Text = $"Ready - {paths.RootDirectory}";
+        StatusText.Text = "Ready";
         ProjectRootText.Text = paths.RootDirectory;
         GamesFolderText.Text = paths.GamesDirectory;
         ToolsFolderText.Text = paths.ResolveToolsDirectory();
@@ -40,7 +43,8 @@ public partial class MainWindow : Window
         AppendLog($"Games folder: {paths.GamesDirectory}");
         AppendLog($"Tools folder: {paths.ResolveToolsDirectory()}");
 
-        Opened += async (_, _) => await ScanAsync();
+        AttachedToVisualTree += async (_, _) => await ScanAsync();
+        SizeChanged += (_, _) => UpdateResponsiveLayout(Bounds.Width);
     }
 
     private async void ScanButton_OnClick(object? sender, RoutedEventArgs e)
@@ -74,6 +78,13 @@ public partial class MainWindow : Window
         AppendLog("Log cleared.");
     }
 
+    private void LogToggleButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var showLog = LogToggleButton.IsChecked == true;
+        LogBox.IsVisible = showLog;
+        LogToggleButton.Content = showLog ? "Hide" : "Show";
+    }
+
     private void CancelButton_OnClick(object? sender, RoutedEventArgs e)
     {
         operationCts?.Cancel();
@@ -82,12 +93,12 @@ public partial class MainWindow : Window
 
     private void ThemeCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (global::Avalonia.Application.Current is null)
+        if (Application.Current is null)
         {
             return;
         }
 
-        global::Avalonia.Application.Current.RequestedThemeVariant = ThemeCombo.SelectedItem switch
+        Application.Current.RequestedThemeVariant = ThemeCombo.SelectedItem switch
         {
             "Light" => ThemeVariant.Light,
             "Dark" => ThemeVariant.Dark,
@@ -472,19 +483,7 @@ public partial class MainWindow : Window
         OutputIdBox.IsEnabled = !busy;
         UseCustomBannerCheck.IsEnabled = !busy;
         Progress.IsVisible = busy;
-        StatusText.Text = busy ? "Working..." : $"Ready - {paths.RootDirectory}";
-    }
-
-    private async Task<IReadOnlyList<int?>?> PromptRiivolutionChoicesAsync(RiivolutionDocument document)
-    {
-        if (!document.Sections.SelectMany(section => section.Options).Any())
-        {
-            return [];
-        }
-
-        var dialog = new RiivolutionChoicesWindow(document);
-        var accepted = await dialog.ShowDialog<bool>(this);
-        return accepted ? dialog.SelectedChoices : null;
+        StatusText.Text = busy ? "Working..." : "Ready";
     }
 
     private async Task<string?> PickLocalFileAsync(string title, FilePickerFileType fileType)
@@ -512,8 +511,38 @@ public partial class MainWindow : Window
         return path;
     }
 
+    private void UpdateResponsiveLayout(double width)
+    {
+        var shouldUseCompactLayout = width < 820;
+        if (shouldUseCompactLayout == compactLayout)
+        {
+            return;
+        }
+
+        compactLayout = shouldUseCompactLayout;
+        if (compactLayout)
+        {
+            WorkflowGrid.ColumnDefinitions = new ColumnDefinitions("*");
+            WorkflowGrid.RowDefinitions = new RowDefinitions("Auto,Auto");
+            Grid.SetColumn(WorkflowRight, 0);
+            Grid.SetRow(WorkflowRight, 1);
+            return;
+        }
+
+        WorkflowGrid.ColumnDefinitions = new ColumnDefinitions("430,*");
+        WorkflowGrid.RowDefinitions = new RowDefinitions("*");
+        Grid.SetColumn(WorkflowRight, 1);
+        Grid.SetRow(WorkflowRight, 0);
+    }
+
     private void AppendLog(string message)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => AppendLog(message));
+            return;
+        }
+
         LogBox.Text += $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
         LogBox.CaretIndex = LogBox.Text?.Length ?? 0;
     }

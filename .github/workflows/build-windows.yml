@@ -29,6 +29,9 @@ jobs:
       - name: Build app
         run: dotnet build src/RiivolutionIsoBuilder.App/RiivolutionIsoBuilder.App.csproj --configuration Release --runtime win-x64 --no-restore
 
+      - name: Build Avalonia desktop host
+        run: dotnet build src/RiivolutionIsoBuilder.Avalonia/RiivolutionIsoBuilder.Avalonia.csproj --configuration Release
+
       - name: Package standalone
         shell: pwsh
         run: ./scripts/package-windows.ps1 -Configuration Release -OutputRoot artifacts -Runtime win-x64

@@ -16,7 +16,7 @@ public sealed class ModCatalog
     {
         if (!File.Exists(catalogFile))
         {
-            throw new FileNotFoundException("No se encontro el catalogo de mods.", catalogFile);
+            return CreateDefault();
         }
 
         var options = new JsonSerializerOptions
@@ -32,6 +32,38 @@ public sealed class ModCatalog
 
         Validate(catalog);
         return new ModCatalog(catalog);
+    }
+
+    public static ModCatalog CreateDefault()
+    {
+        return new ModCatalog(new CatalogDefinition
+        {
+            Games =
+            [
+                new GameDefinition
+                {
+                    Key = "smg1",
+                    DisplayName = "SMG1",
+                    GameIds = ["RMGE01", "RMGP01", "RMGJ01"],
+                    RequiredFreeSpaceGb = 8
+                },
+                new GameDefinition
+                {
+                    Key = "smg2",
+                    DisplayName = "SMG2",
+                    GameIds = ["SB4E01", "SB4P01", "SB4J01"],
+                    RequiredFreeSpaceGb = 4
+                }
+            ],
+            Regions =
+            [
+                new RegionDefinition { Code = "USA", Name = "USA", IdCharacter = "E" },
+                new RegionDefinition { Code = "PAL", Name = "PAL", IdCharacter = "P" },
+                new RegionDefinition { Code = "JAP", Name = "JAP", IdCharacter = "J" },
+                new RegionDefinition { Code = "KOR", Name = "KOR", IdCharacter = "K" },
+                new RegionDefinition { Code = "TWN", Name = "TWN", IdCharacter = "W" }
+            ]
+        });
     }
 
     public GameDefinition? GetGame(string gameId)

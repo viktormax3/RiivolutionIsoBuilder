@@ -21,9 +21,15 @@ public sealed class ExternalToolRunner
 
     public async Task<ToolResult> RunAsync(string fileName, string arguments, string workingDirectory, CancellationToken cancellationToken)
     {
+        if (!File.Exists(fileName))
+        {
+            throw new FileNotFoundException($"No se encontro la herramienta requerida: {Path.GetFileName(fileName)}. Revisa data/tools/<runtime> o RIIVOLUTION_ISO_BUILDER_TOOLS.", fileName);
+        }
+
         log($"> {Path.GetFileName(fileName)} {arguments}");
 
         var output = new StringBuilder();
+        var outputLock = new object();
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
@@ -35,31 +41,50 @@ public sealed class ExternalToolRunner
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        process.OutputDataReceived += (_, e) => AppendLine(e.Data, output);
-        process.ErrorDataReceived += (_, e) => AppendLine(e.Data, output);
+        process.OutputDataReceived += (_, e) => AppendLine(e.Data, output, outputLock);
+        process.ErrorDataReceived += (_, e) => AppendLine(e.Data, output, outputLock);
 
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        await process.WaitForExitAsync(cancellationToken);
-
-        var text = output.ToString();
-        if (!string.IsNullOrWhiteSpace(text))
+        try
         {
-            log(text.TrimEnd());
+            await process.WaitForExitAsync(cancellationToken);
+            process.WaitForExit();
+        }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
+            }
+
+            throw;
         }
 
-        return new ToolResult(process.ExitCode, text);
+        lock (outputLock)
+        {
+            return new ToolResult(process.ExitCode, output.ToString());
+        }
     }
 
-    private void AppendLine(string? line, StringBuilder output)
+    private void AppendLine(string? line, StringBuilder output, object outputLock)
     {
         if (line is null)
         {
             return;
         }
 
-        output.AppendLine(line);
+        lock (outputLock)
+        {
+            output.AppendLine(line);
+        }
+
+        if (!string.IsNullOrWhiteSpace(line))
+        {
+            log(line);
+        }
     }
 }
 

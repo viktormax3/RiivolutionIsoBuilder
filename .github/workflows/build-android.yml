@@ -1,0 +1,53 @@
+name: Build Android Package
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+      - feature/avalonia-ui
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Android APK
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Show Android environment
+        shell: pwsh
+        run: |
+          Write-Host "ANDROID_HOME=$env:ANDROID_HOME"
+          Write-Host "ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT"
+          Write-Host "JAVA_HOME=$env:JAVA_HOME"
+          dotnet workload list
+
+      - name: Build APK
+        shell: pwsh
+        run: ./scripts/build-android.ps1 -Configuration Release -Publish -OutputRoot artifacts
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RiivolutionIsoBuilder-android
+          path: artifacts/*.apk
+          if-no-files-found: error

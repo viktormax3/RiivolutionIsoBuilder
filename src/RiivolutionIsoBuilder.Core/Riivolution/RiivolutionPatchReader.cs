@@ -24,11 +24,11 @@ public static class RiivolutionPatchReader
         var root = document.Root is null ? "" : (string?)document.Root.Attribute("root") ?? "/riivolution";
         var discId = ReadDiscId(document);
         var sections = document
-            .Descendants("section")
+            .DescendantsLocal("section")
             .Select(ReadSection)
             .ToList();
         var patches = document
-            .Descendants("patch")
+            .DescendantsLocal("patch")
             .Where(IsPatchDefinition)
             .Select(patch => ReadPatch(patch, regionName, root))
             .ToList();
@@ -46,7 +46,7 @@ public static class RiivolutionPatchReader
 
     private static RiivolutionDiscId? ReadDiscId(XDocument document)
     {
-        var id = document.Root?.Element("id");
+        var id = document.Root?.ElementsLocal("id").FirstOrDefault();
         if (id is null)
         {
             return null;
@@ -55,7 +55,7 @@ public static class RiivolutionPatchReader
         return new RiivolutionDiscId(
             (string?)id.Attribute("game") ?? "",
             (string?)id.Attribute("developer") ?? "",
-            id.Elements("region").Select(region => (string?)region.Attribute("type") ?? "").Where(type => type.Length > 0).ToList());
+            id.ElementsLocal("region").Select(region => (string?)region.Attribute("type") ?? "").Where(type => type.Length > 0).ToList());
     }
 
     private static string ResolveDisplayName(string xmlFile, XDocument document, IReadOnlyList<RiivolutionSection> sections, IReadOnlyList<RiivolutionPatch> patches)
@@ -86,7 +86,7 @@ public static class RiivolutionPatchReader
     {
         return new RiivolutionSection(
             (string?)section.Attribute("name") ?? "",
-            section.Elements("option").Select(ReadOption).ToList());
+            section.ElementsLocal("option").Select(ReadOption).ToList());
     }
 
     private static RiivolutionOption ReadOption(XElement option)
@@ -96,7 +96,7 @@ public static class RiivolutionPatchReader
             (string?)option.Attribute("name") ?? "",
             ParseInt((string?)option.Attribute("default") ?? (string?)option.Attribute("index")),
             ReadParams(option),
-            option.Elements("choice").Select(ReadChoice).ToList());
+            option.ElementsLocal("choice").Select(ReadChoice).ToList());
     }
 
     private static RiivolutionChoice ReadChoice(XElement choice)
@@ -104,7 +104,7 @@ public static class RiivolutionPatchReader
         return new RiivolutionChoice(
             (string?)choice.Attribute("name") ?? "",
             ReadParams(choice),
-            choice.Elements("patch")
+            choice.ElementsLocal("patch")
                 .Select(patch => new RiivolutionPatchReference((string?)patch.Attribute("id") ?? "", ReadParams(patch)))
                 .Where(patch => patch.Id.Length > 0)
                 .ToList());
@@ -114,12 +114,12 @@ public static class RiivolutionPatchReader
     {
         var id = (string?)patch.Attribute("id") ?? "";
         var root = (string?)patch.Attribute("root") ?? documentRoot;
-        var saveGame = patch.Elements("savegame")
+        var saveGame = patch.ElementsLocal("savegame")
             .Select(element => new RiivolutionSaveGame(
                 (string?)element.Attribute("external") ?? "",
                 ParseBool((string?)element.Attribute("clone"))))
             .FirstOrDefault();
-        var files = patch.Elements("file")
+        var files = patch.ElementsLocal("file")
             .Select(element => new RiivolutionFileMapping(
                 (string?)element.Attribute("external") ?? "",
                 (string?)element.Attribute("disc") ?? "",
@@ -128,7 +128,7 @@ public static class RiivolutionPatchReader
                 (string?)element.Attribute("offset") ?? "",
                 (string?)element.Attribute("length") ?? ""))
             .ToList();
-        var folders = patch.Elements("folder")
+        var folders = patch.ElementsLocal("folder")
             .Select(element => new RiivolutionFolderMapping(
                 (string?)element.Attribute("external") ?? "",
                 (string?)element.Attribute("disc") ?? "",
@@ -199,7 +199,7 @@ public static class RiivolutionPatchReader
 
     private static IReadOnlyList<RiivolutionParam> ReadParams(XElement element)
     {
-        return element.Elements("param")
+        return element.ElementsLocal("param")
             .Select(param => new RiivolutionParam((string?)param.Attribute("name") ?? "", (string?)param.Attribute("value") ?? ""))
             .Where(param => param.Name.Length > 0)
             .ToList();
@@ -229,3 +229,15 @@ public static class RiivolutionPatchReader
     }
 }
 
+internal static class XmlLocalNameExtensions
+{
+    public static IEnumerable<XElement> ElementsLocal(this XContainer element, string localName)
+    {
+        return element.Elements().Where(child => child.Name.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static IEnumerable<XElement> DescendantsLocal(this XContainer element, string localName)
+    {
+        return element.Descendants().Where(child => child.Name.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase));
+    }
+}

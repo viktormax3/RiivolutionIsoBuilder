@@ -63,15 +63,17 @@ Current tool discovery supports the bundled `data/tools` folder, platform-specif
 
 ## 5. Android Feasibility
 
-Status: future experiment.
+Status: started.
 
 Android is technically interesting because Wiimm tools can be used from Linux-like environments such as Termux, but a normal graphical Android app has stricter file access, native binary, storage, and performance constraints.
 
-Before building an Android app, create a small feasibility prototype that validates:
+Current direction:
 
-- Opening large ISO/WBFS files through Android storage APIs.
-- Running or replacing the required toolchain operations.
-- Writing a generated output image reliably.
-- Acceptable CPU, memory, and storage behavior on real devices.
+- Keep shared Avalonia UI in `RiivolutionIsoBuilder.UI`.
+- Keep `RiivolutionIsoBuilder.Avalonia` as the desktop host.
+- Add `RiivolutionIsoBuilder.Android` as the Android host.
+- Keep Android out of the default solution build until CI/dev machines have the Android workload.
+- Use a writable app-local root on Android instead of relying on executable-relative `data`.
+- Continue using external Wiimm tools first, then evaluate native-library or managed replacements.
 
-Android should come after the core and desktop cross-platform work, not before it.
+The detailed Android plan is tracked in [AndroidPort.md](AndroidPort.md).

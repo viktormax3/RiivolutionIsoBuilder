@@ -185,7 +185,9 @@ Main projects:
 
 - [src/RiivolutionIsoBuilder.Core](src/RiivolutionIsoBuilder.Core): reusable build engine, catalog, Riivolution XML, and toolchain abstraction.
 - [src/RiivolutionIsoBuilder.App](src/RiivolutionIsoBuilder.App): current WinForms builder.
-- [src/RiivolutionIsoBuilder.Avalonia](src/RiivolutionIsoBuilder.Avalonia): early cross-platform Avalonia desktop UI.
+- [src/RiivolutionIsoBuilder.UI](src/RiivolutionIsoBuilder.UI): shared Avalonia UI used by desktop and mobile hosts.
+- [src/RiivolutionIsoBuilder.Avalonia](src/RiivolutionIsoBuilder.Avalonia): Avalonia desktop host.
+- [src/RiivolutionIsoBuilder.Android](src/RiivolutionIsoBuilder.Android): Android host prototype.
 - [src/RiivolutionIsoBuilder.RiivProbe](src/RiivolutionIsoBuilder.RiivProbe): console XML inspection tool.
 
-The longer-term cross-platform plan is tracked in [docs/Roadmap.md](docs/Roadmap.md).
+The longer-term cross-platform plan is tracked in [docs/Roadmap.md](docs/Roadmap.md). Android-specific notes are in [docs/AndroidPort.md](docs/AndroidPort.md).
