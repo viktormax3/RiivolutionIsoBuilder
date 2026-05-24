@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\RiivolutionIsoBuilder.App\Riivolution\*.cs" LinkBase="Riivolution" />
+    <ProjectReference Include="..\RiivolutionIsoBuilder.Core\RiivolutionIsoBuilder.Core.csproj" />
   </ItemGroup>
 
 </Project>

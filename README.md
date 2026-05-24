@@ -67,8 +67,8 @@ data/
 games/         Recommended place for input game backups.
 output/        Generated images.
 work/          Temporary extraction/build folder.
-docs/          Notes about the Riivolution XML interpreter.
-src/           WinForms app and probe utility.
+docs/          Notes about the Riivolution interpreter and roadmap.
+src/           Core library, WinForms app, and probe utility.
 ```
 
 The app scans `games` first. It can also find images selected manually with `Elegir ISO`.
@@ -162,12 +162,12 @@ Create a Windows package with:
 .\scripts\package-windows.ps1
 ```
 
-By default this publishes a self-contained `win-x64` build, copies the required `data` folders, creates empty `games`, `output`, and `work` folders, and writes a ZIP under `artifacts`.
+By default this publishes a self-contained single-file `win-x64` build, copies the required `data` folders, creates empty `games`, `output`, and `work` folders, and writes a ZIP under `artifacts`.
 
 Useful options:
 
 ```powershell
-.\scripts\package-windows.ps1 -Runtime portable -FrameworkDependent
+.\scripts\package-windows.ps1 -Runtime win-x64 -FrameworkDependent
 .\scripts\package-windows.ps1 -Configuration Debug -OutputRoot artifacts-dev
 ```
 
@@ -181,5 +181,8 @@ dotnet build .\RiivolutionIsoBuilder.sln
 
 Main projects:
 
-- [src/RiivolutionIsoBuilder.App](src/RiivolutionIsoBuilder.App): WinForms builder.
+- [src/RiivolutionIsoBuilder.Core](src/RiivolutionIsoBuilder.Core): reusable build engine, catalog, Riivolution XML, and tool execution logic.
+- [src/RiivolutionIsoBuilder.App](src/RiivolutionIsoBuilder.App): current WinForms builder.
 - [src/RiivolutionIsoBuilder.RiivProbe](src/RiivolutionIsoBuilder.RiivProbe): console XML inspection tool.
+
+The longer-term cross-platform plan is tracked in [docs/Roadmap.md](docs/Roadmap.md).

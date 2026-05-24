@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiivolutionIsoBuilder.App",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiivolutionIsoBuilder.RiivProbe", "src\RiivolutionIsoBuilder.RiivProbe\RiivolutionIsoBuilder.RiivProbe.csproj", "{C99FB8C7-ACD8-4661-94D4-2DFA7FDEB1E7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiivolutionIsoBuilder.Core", "src\RiivolutionIsoBuilder.Core\RiivolutionIsoBuilder.Core.csproj", "{E0813787-D3E6-4311-8DE6-7E2218AF336B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,10 +28,14 @@ Global
 		{C99FB8C7-ACD8-4661-94D4-2DFA7FDEB1E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C99FB8C7-ACD8-4661-94D4-2DFA7FDEB1E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C99FB8C7-ACD8-4661-94D4-2DFA7FDEB1E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0813787-D3E6-4311-8DE6-7E2218AF336B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0813787-D3E6-4311-8DE6-7E2218AF336B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0813787-D3E6-4311-8DE6-7E2218AF336B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0813787-D3E6-4311-8DE6-7E2218AF336B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{15400ECB-7F52-43F8-9B7A-09A062E440D0} = {609B701B-6D28-4D61-BEA9-8DEE57001761}
 		{C99FB8C7-ACD8-4661-94D4-2DFA7FDEB1E7} = {609B701B-6D28-4D61-BEA9-8DEE57001761}
+		{E0813787-D3E6-4311-8DE6-7E2218AF336B} = {609B701B-6D28-4D61-BEA9-8DEE57001761}
 	EndGlobalSection
 EndGlobal
-

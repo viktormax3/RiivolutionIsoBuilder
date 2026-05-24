@@ -11,5 +11,9 @@
     <ApplicationTitle>Riivolution ISO Builder</ApplicationTitle>
     <Product>Riivolution ISO Builder</Product>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RiivolutionIsoBuilder.Core\RiivolutionIsoBuilder.Core.csproj" />
+  </ItemGroup>
 </Project>
 
