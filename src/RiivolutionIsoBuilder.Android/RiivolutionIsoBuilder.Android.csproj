@@ -20,4 +20,13 @@
   <ItemGroup>
     <ProjectReference Include="..\RiivolutionIsoBuilder.UI\RiivolutionIsoBuilder.UI.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AndroidAsset Include="..\..\data\banner\**\*" Link="data/banner/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\data\catalog\**\*" Link="data/catalog/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\data\gct\**\*" Link="data/gct/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\data\xml\**\*" Link="data/xml/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\data\tools\titles.txt" Link="data/tools/titles.txt" />
+    <AndroidAsset Include="..\..\data\tools\android-arm64\**\*" Link="data/tools/android-arm64/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

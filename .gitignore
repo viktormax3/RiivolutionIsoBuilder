@@ -7,6 +7,8 @@ output/
 artifacts/
 dist/
 wiimms/
+.msys2/
+.wiimm-build-host-bin/
 .android-sdk/
 .android-jdk/
 publish/
@@ -18,3 +20,4 @@ games/*.wbfs
 games/*.ciso
 games/*.wdf
 games/*.wia
+.msys2-base.sfx.exe
