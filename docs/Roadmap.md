@@ -45,7 +45,7 @@ Preferred direction:
 - Keep the existing WinForms app working until the Avalonia app reaches feature parity.
 - Publish desktop builds for Windows first, then Linux and macOS after toolchain packaging is solved for each platform.
 
-The initial `RiivolutionIsoBuilder.Avalonia` project can start, discover the project layout, scan compatible images, manually choose an ISO, list catalog mods, suggest output IDs, run catalog builds, and show logs. It is not feature-complete yet.
+The initial `RiivolutionIsoBuilder.Avalonia` project can start, discover the project layout, scan compatible images, manually choose an ISO, list catalog mods, load native Riivolution XML files with option choices, load standalone GCT patches, suggest output IDs, run builds, and show logs. It is not feature-complete yet.
 
 ## 4. Platform Tool Packaging
 

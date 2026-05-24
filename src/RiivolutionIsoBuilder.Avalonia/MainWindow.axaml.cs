@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using RiivolutionIsoBuilder.Riivolution;
 
 namespace RiivolutionIsoBuilder.Avalonia;
 
@@ -9,6 +10,7 @@ public partial class MainWindow : Window
     private readonly PatcherPaths paths;
     private readonly PatcherEngine engine;
     private readonly List<GameImage> gameImages = [];
+    private readonly List<object> modChoices = [];
     private CancellationTokenSource? operationCts;
 
     public MainWindow()
@@ -39,6 +41,16 @@ public partial class MainWindow : Window
     private async void BuildButton_OnClick(object? sender, RoutedEventArgs e)
     {
         await BuildAsync();
+    }
+
+    private async void XmlButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        await BrowseRiivolutionXmlAsync();
+    }
+
+    private async void GctButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        await BrowseGctAsync();
     }
 
     private void GamesCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -81,28 +93,13 @@ public partial class MainWindow : Window
 
     private async Task BrowseIsoAsync()
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            AppendLog("ERROR: File picker is not available.");
-            return;
-        }
-
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Select Wii backup",
-            AllowMultiple = false,
-            FileTypeFilter =
-            [
-                new FilePickerFileType("Wii images")
-                {
-                    Patterns = BuilderDefaults.InputImageExtensions.Select(extension => $"*.{extension}").ToList()
-                },
-                FilePickerFileTypes.All
-            ]
-        });
-        var file = files.FirstOrDefault();
-        if (file is null)
+        var imagePath = await PickLocalFileAsync(
+            "Select Wii backup",
+            new FilePickerFileType("Wii images")
+            {
+                Patterns = BuilderDefaults.InputImageExtensions.Select(extension => $"*.{extension}").ToList()
+            });
+        if (imagePath is null)
         {
             return;
         }
@@ -111,13 +108,6 @@ public partial class MainWindow : Window
         operationCts = new CancellationTokenSource();
         try
         {
-            var imagePath = file.TryGetLocalPath();
-            if (string.IsNullOrWhiteSpace(imagePath))
-            {
-                AppendLog("ERROR: The selected file does not expose a local path.");
-                return;
-            }
-
             AppendLog($"Inspecting image: {imagePath}");
             var image = await engine.InspectImageAsync(imagePath, operationCts.Token);
             if (image is null)
@@ -141,6 +131,71 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task BrowseRiivolutionXmlAsync()
+    {
+        if (GamesCombo.SelectedItem is not GameImage game)
+        {
+            AppendLog("Select a game before loading a Riivolution XML.");
+            return;
+        }
+
+        var xmlFile = await PickLocalFileAsync(
+            "Select Riivolution XML",
+            new FilePickerFileType("Riivolution XML") { Patterns = ["*.xml"] });
+        if (xmlFile is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var document = RiivolutionPatchReader.ReadDocument(xmlFile, game.Region.Name);
+            var choices = await PromptRiivolutionChoicesAsync(document);
+            if (choices is null)
+            {
+                return;
+            }
+
+            var mod = engine.LoadNativeRiivolutionMod(xmlFile, game, choices, document);
+            AddOrSelectMod(mod);
+            OutputIdBox.Text = engine.SuggestNativeOutputId(mod, game);
+            AppendLog($"XML loaded: {mod.ShortName} - {xmlFile}");
+            if (!string.IsNullOrWhiteSpace(mod.ChoiceSummary))
+            {
+                AppendLog($"XML choices: {mod.ChoiceSummary}");
+            }
+
+            AppendLog($"Active patches: {string.Join(", ", mod.Plan.ActivePatches.Select(patch => patch.Id))}");
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"ERROR: {ex.Message}");
+        }
+    }
+
+    private async Task BrowseGctAsync()
+    {
+        if (GamesCombo.SelectedItem is not GameImage game)
+        {
+            AppendLog("Select a game before loading a GCT.");
+            return;
+        }
+
+        var gctFile = await PickLocalFileAsync(
+            "Select GCT patch",
+            new FilePickerFileType("Ocarina GCT") { Patterns = ["*.gct"] });
+        if (gctFile is null)
+        {
+            return;
+        }
+
+        var displayName = Path.GetFileNameWithoutExtension(gctFile);
+        var patch = new ManualGctPatch(gctFile, displayName);
+        AddOrSelectMod(patch);
+        OutputIdBox.Text = OutputIdSuggester.ForManualPatch(displayName, game);
+        AppendLog($"GCT loaded: {displayName} - {gctFile}");
+    }
+
     private async Task BuildAsync()
     {
         if (GamesCombo.SelectedItem is not GameImage game)
@@ -149,9 +204,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (ModsCombo.SelectedItem is not ModDefinition mod)
+        if (ModsCombo.SelectedItem is null)
         {
-            AppendLog("Select a catalog mod first.");
+            AppendLog("Select a mod, Riivolution XML, or GCT first.");
             return;
         }
 
@@ -161,10 +216,26 @@ public partial class MainWindow : Window
         operationCts = new CancellationTokenSource();
         try
         {
-            var plan = engine.CreatePlan(game, mod, options);
-            OutputIdBox.Text = plan.OutputId;
-            AppendLog($"Building {mod.DisplayName} for {plan.OutputId}...");
-            await engine.BuildAsync(plan, options, operationCts.Token);
+            if (ModsCombo.SelectedItem is NativeRiivolutionMod nativeMod)
+            {
+                var nativePlan = engine.CreateNativePlan(game, nativeMod, OutputIdBox.Text ?? "", options);
+                AppendLog($"Building XML {nativeMod.DisplayName} for {nativePlan.OutputId}...");
+                await engine.BuildNativeAsync(nativePlan, operationCts.Token);
+            }
+            else if (ModsCombo.SelectedItem is ManualGctPatch gctPatch)
+            {
+                var gctPlan = engine.CreateGctPlan(game, gctPatch, OutputIdBox.Text ?? "", options);
+                AppendLog($"Building GCT {gctPatch.DisplayName} for {gctPlan.OutputId}...");
+                await engine.BuildGctAsync(gctPlan, operationCts.Token);
+            }
+            else if (ModsCombo.SelectedItem is ModDefinition mod)
+            {
+                var plan = engine.CreatePlan(game, mod, options);
+                OutputIdBox.Text = plan.OutputId;
+                AppendLog($"Building {mod.DisplayName} for {plan.OutputId}...");
+                await engine.BuildAsync(plan, options, operationCts.Token);
+            }
+
             AppendLog("Build finished.");
         }
         catch (Exception ex)
@@ -183,17 +254,18 @@ public partial class MainWindow : Window
     {
         if (GamesCombo.SelectedItem is not GameImage game)
         {
-            ModsCombo.ItemsSource = null;
+            modChoices.Clear();
+            RefreshModList();
             OutputIdBox.Text = "";
             return;
         }
 
-        var mods = engine.GetAvailableMods(game.Game);
-        ModsCombo.ItemsSource = mods;
-        ModsCombo.SelectedIndex = mods.Count > 0 ? 0 : -1;
+        modChoices.Clear();
+        modChoices.AddRange(engine.GetAvailableMods(game.Game));
+        RefreshModList();
         RefreshOutputIdSuggestion();
 
-        if (mods.Count == 0)
+        if (modChoices.Count == 0)
         {
             AppendLog("No local catalog mods found for the selected game.");
         }
@@ -201,13 +273,33 @@ public partial class MainWindow : Window
 
     private void RefreshOutputIdSuggestion()
     {
-        if (GamesCombo.SelectedItem is not GameImage game || ModsCombo.SelectedItem is not ModDefinition mod)
+        if (GamesCombo.SelectedItem is not GameImage game)
         {
             OutputIdBox.Text = "";
             return;
         }
 
-        OutputIdBox.Text = OutputIdSuggester.ForCatalogMod(mod, game);
+        OutputIdBox.Text = ModsCombo.SelectedItem switch
+        {
+            NativeRiivolutionMod nativeMod => engine.SuggestNativeOutputId(nativeMod, game),
+            ManualGctPatch gctPatch => OutputIdSuggester.ForManualPatch(gctPatch.DisplayName, game),
+            ModDefinition mod => OutputIdSuggester.ForCatalogMod(mod, game),
+            _ => ""
+        };
+    }
+
+    private void RefreshModList()
+    {
+        ModsCombo.ItemsSource = null;
+        ModsCombo.ItemsSource = modChoices;
+        ModsCombo.SelectedIndex = modChoices.Count > 0 ? 0 : -1;
+    }
+
+    private void AddOrSelectMod(object mod)
+    {
+        modChoices.Add(mod);
+        RefreshModList();
+        ModsCombo.SelectedIndex = modChoices.Count - 1;
     }
 
     private void RefreshGameList()
@@ -236,6 +328,8 @@ public partial class MainWindow : Window
         ScanButton.IsEnabled = !busy;
         BrowseButton.IsEnabled = !busy;
         BuildButton.IsEnabled = !busy;
+        XmlButton.IsEnabled = !busy;
+        GctButton.IsEnabled = !busy;
         GamesCombo.IsEnabled = !busy;
         ModsCombo.IsEnabled = !busy;
         ExtensionCombo.IsEnabled = !busy;
@@ -243,6 +337,43 @@ public partial class MainWindow : Window
         UseCustomBannerCheck.IsEnabled = !busy;
         Progress.IsVisible = busy;
         StatusText.Text = busy ? "Working..." : $"Ready - {paths.RootDirectory}";
+    }
+
+    private async Task<IReadOnlyList<int?>?> PromptRiivolutionChoicesAsync(RiivolutionDocument document)
+    {
+        if (!document.Sections.SelectMany(section => section.Options).Any())
+        {
+            return [];
+        }
+
+        var dialog = new RiivolutionChoicesWindow(document);
+        var accepted = await dialog.ShowDialog<bool>(this);
+        return accepted ? dialog.SelectedChoices : null;
+    }
+
+    private async Task<string?> PickLocalFileAsync(string title, FilePickerFileType fileType)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null)
+        {
+            AppendLog("ERROR: File picker is not available.");
+            return null;
+        }
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = [fileType, FilePickerFileTypes.All]
+        });
+        var path = files.FirstOrDefault()?.TryGetLocalPath();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            AppendLog("ERROR: The selected file does not expose a local path.");
+            return null;
+        }
+
+        return path;
     }
 
     private void AppendLog(string message)

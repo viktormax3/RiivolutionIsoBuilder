@@ -58,7 +58,9 @@
           <Button x:Name="BuildButton" Content="Build" MinWidth="96" Click="BuildButton_OnClick" />
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="16">
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10">
+          <Button x:Name="XmlButton" Content="Browse XML" MinWidth="110" Click="XmlButton_OnClick" />
+          <Button x:Name="GctButton" Content="Browse GCT" MinWidth="110" Click="GctButton_OnClick" />
           <CheckBox x:Name="UseCustomBannerCheck" Content="Use custom banner" IsChecked="True" />
           <ProgressBar x:Name="Progress" IsIndeterminate="True" IsVisible="False" Width="220" Height="18" />
         </StackPanel>
