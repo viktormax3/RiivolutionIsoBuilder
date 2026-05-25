@@ -31,20 +31,12 @@ public sealed class ExternalToolRunner
         var output = new StringBuilder();
         var outputLock = new object();
         using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            WorkingDirectory = workingDirectory,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
+        process.StartInfo = CreateStartInfo(fileName, arguments, workingDirectory);
         process.OutputDataReceived += (_, e) => AppendLine(e.Data, output, outputLock);
         process.ErrorDataReceived += (_, e) => AppendLine(e.Data, output, outputLock);
 
         process.Start();
+        TryLowerPriority(process);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         try
@@ -68,6 +60,48 @@ public sealed class ExternalToolRunner
             return new ToolResult(process.ExitCode, output.ToString());
         }
     }
+
+    private static ProcessStartInfo CreateStartInfo(string fileName, string arguments, string workingDirectory)
+    {
+        if (OperatingSystem.IsAndroid() && File.Exists("/system/bin/nice"))
+        {
+            return new ProcessStartInfo
+            {
+                FileName = "/system/bin/nice",
+                Arguments = $"-n 10 {Quote(fileName)} {arguments}",
+                WorkingDirectory = workingDirectory,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+        }
+
+        return new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            WorkingDirectory = workingDirectory,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+    }
+
+    private static void TryLowerPriority(Process process)
+    {
+        try
+        {
+            process.PriorityClass = ProcessPriorityClass.BelowNormal;
+        }
+        catch
+        {
+            // Android and some Unix hosts do not support PriorityClass.
+        }
+    }
+
+    private static string Quote(string value) => $"\"{value.Replace("\"", "\\\"")}\"";
 
     private void AppendLine(string? line, StringBuilder output, object outputLock)
     {

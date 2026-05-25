@@ -445,17 +445,98 @@ endif
 }
 
 function Patch-AndroidFortifyPercentN([string]$ProjectDirectory) {
-    $file = Join-Path $ProjectDirectory "src/lib-sf.c"
-    if (-not (Test-Path $file)) {
-        return
+    $sfFile = Join-Path $ProjectDirectory "src/lib-sf.c"
+    if (Test-Path $sfFile) {
+        $text = Get-Content -Raw $sfFile
+        $replacements = @{
+            'snprintf(fbuf,sizeof(fbuf),"%u%n",slot,&fw);' = 'fw = snprintf(fbuf,sizeof(fbuf),"%u",slot);'
+            'printf("%*s%3d%% %s in %s (%3.1f MiB/sec)  %n\r",' = 'wd = printf("%*s%3d%% %s in %s (%3.1f MiB/sec)  \r",'
+            'printf("%*s%3d%% %s in %s (%3.1f MiB/sec) -> ETA %s   %n\r",' = 'wd = printf("%*s%3d%% %s in %s (%3.1f MiB/sec) -> ETA %s   \r",'
+            '(double)total * 1000 / MiB / elapsed, &wd );' = '(double)total * 1000 / MiB / elapsed );'
+            '(double)total * 1000 / MiB / elapsed, time2, &wd );' = '(double)total * 1000 / MiB / elapsed, time2 );'
+        }
+        foreach ($entry in $replacements.GetEnumerator()) {
+            $text = $text.Replace($entry.Key, $entry.Value)
+        }
+        Set-Content -Path $sfFile -Value $text -NoNewline
     }
 
-    $text = Get-Content -Raw $file
-    $old = 'snprintf(fbuf,sizeof(fbuf),"%u%n",slot,&fw);'
-    $new = 'fw = snprintf(fbuf,sizeof(fbuf),"%u",slot);'
-    if ($text.Contains($old)) {
+    $numericFile = Join-Path $ProjectDirectory "dclib/dclib-numeric.c"
+    if (Test-Path $numericFile) {
+        $text = Get-Content -Raw $numericFile
+        $old = @"
+    char linesep[200];
+    int pre_pos;
+    snprintf(linesep,sizeof(linesep),"%s%n%*s%s",
+		eol,
+		&pre_pos,
+		indent, "",
+		prefix ? prefix : ""
+		);
+"@
+        $new = @"
+    char linesep[200];
+    int pre_pos = strlen(eol);
+    snprintf(linesep,sizeof(linesep),"%s%*s%s",
+		eol,
+		indent, "",
+		prefix ? prefix : ""
+		);
+"@
+        if ($text.Contains($old)) {
+            $text = $text.Replace($old, $new)
+            Set-Content -Path $numericFile -Value $text -NoNewline
+        }
+    }
+
+    $isoFile = Join-Path $ProjectDirectory "src/iso-interface.c"
+    if (Test-Path $isoFile) {
+        $text = Get-Content -Raw $isoFile
+        $text = $text.Replace(
+            'printf("%*s%-7.7s %s %n%-7s %6.6s %s\n",',
+            'ver->info_indent = ver->indent + 7 + 1 + strlen(count_buf) + 1;' + "`r`n`t" + 'printf("%*s%-7.7s %s %-7s %6.6s %s\n",')
+        $text = $text.Replace(
+            'TRACE("%*s%-7.7s %s %n%-7s %6.6s %s\n",',
+            'TRACE("%*s%-7.7s %s %-7s %6.6s %s\n",')
+        $text = $text.Replace(
+            'msg, count_buf, &ver->info_indent,',
+            'msg, count_buf,')
+        Set-Content -Path $isoFile -Value $text -NoNewline
+    }
+
+    $witFile = Join-Path $ProjectDirectory "src/wit.c"
+    if (Test-Path $witFile) {
+        $text = Get-Content -Raw $witFile
+        $old = @"
+	    printf("ID6   %s %*s Reg.  %n%d discs (%s)%n\n",
+		    pt.head, size_fw, wd_get_size_unit(column_unit,"?"),
+		    &n1, wlist.used,
+		    wd_print_size(0,0,total_size,false,total_unit), &n2 );
+"@
+        $new = @"
+	    printf("ID6   %s %*s Reg.  %d discs (%s)\n",
+		    pt.head, size_fw, wd_get_size_unit(column_unit,"?"),
+		    wlist.used,
+		    wd_print_size(0,0,total_size,false,total_unit) );
+	    n1 = n2 = 0;
+"@
         $text = $text.Replace($old, $new)
-        Set-Content -Path $file -Value $text -NoNewline
+
+        $old = @"
+	    printf("ID6    %s %n%d disc%s (%s)%n\n",
+		    pt.head, &n1,
+		    wlist.used, wlist.used == 1 ? "" : "s",
+		    wd_print_size(0,0,total_size,false,total_unit), &n2 );
+"@
+        $new = @"
+	    printf("ID6    %s %d disc%s (%s)\n",
+		    pt.head,
+		    wlist.used, wlist.used == 1 ? "" : "s",
+		    wd_print_size(0,0,total_size,false,total_unit) );
+	    n1 = n2 = 0;
+"@
+        $text = $text.Replace($old, $new)
+        Set-Content -Path $witFile -Value $text -NoNewline
     }
 }
 

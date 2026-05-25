@@ -313,26 +313,28 @@ public partial class MainView : UserControl
         var options = new BuildOptions(extension, UseCustomBannerCheck.IsChecked == true);
         SetBusy(true);
         operationCts = new CancellationTokenSource();
+        var token = operationCts.Token;
         try
         {
-            if (ModsCombo.SelectedItem is NativeRiivolutionMod nativeMod)
+            var selectedMod = ModsCombo.SelectedItem;
+            if (selectedMod is NativeRiivolutionMod nativeMod)
             {
                 var nativePlan = engine.CreateNativePlan(game, nativeMod, OutputIdBox.Text ?? "", options);
                 AppendLog($"Building XML {nativeMod.DisplayName} for {nativePlan.OutputId}...");
-                await engine.BuildNativeAsync(nativePlan, operationCts.Token);
+                await Task.Run(async () => await engine.BuildNativeAsync(nativePlan, token), token);
             }
-            else if (ModsCombo.SelectedItem is ManualGctPatch gctPatch)
+            else if (selectedMod is ManualGctPatch gctPatch)
             {
                 var gctPlan = engine.CreateGctPlan(game, gctPatch, OutputIdBox.Text ?? "", options);
                 AppendLog($"Building GCT {gctPatch.DisplayName} for {gctPlan.OutputId}...");
-                await engine.BuildGctAsync(gctPlan, operationCts.Token);
+                await Task.Run(async () => await engine.BuildGctAsync(gctPlan, token), token);
             }
-            else if (ModsCombo.SelectedItem is ModDefinition mod)
+            else if (selectedMod is ModDefinition mod)
             {
                 var plan = engine.CreatePlan(game, mod, options);
                 OutputIdBox.Text = plan.OutputId;
                 AppendLog($"Building {mod.DisplayName} for {plan.OutputId}...");
-                await engine.BuildAsync(plan, options, operationCts.Token);
+                await Task.Run(async () => await engine.BuildAsync(plan, options, token), token);
             }
 
             AppendLog("Build finished.");
