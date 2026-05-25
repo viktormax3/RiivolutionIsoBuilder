@@ -166,6 +166,41 @@
         </Border>
       </Grid>
     </Grid>
+
+    <Border x:Name="WorkspacePickerHost"
+            Grid.RowSpan="3"
+            IsVisible="False"
+            Classes="panel"
+            Background="{DynamicResource AppBackgroundBrush}"
+            Padding="14"
+            VerticalAlignment="Center">
+      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+        <TextBlock x:Name="WorkspacePickerTitle" Classes="sectionTitle" Text="Select file" />
+        <TextBlock Grid.Row="1"
+                   x:Name="WorkspacePickerFolder"
+                   Classes="muted small"
+                   TextWrapping="Wrap" />
+        <ListBox Grid.Row="2"
+                 x:Name="WorkspacePickerList"
+                 MinHeight="260"
+                 DoubleTapped="WorkspacePickerList_OnDoubleTapped" />
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+          <Button x:Name="WorkspacePickerCancelButton"
+                  Classes="secondary"
+                  Content="Cancel"
+                  MinWidth="96"
+                  Click="WorkspacePickerCancelButton_OnClick" />
+          <Button x:Name="WorkspacePickerSelectButton"
+                  Classes="primary"
+                  Content="Select"
+                  MinWidth="96"
+                  Click="WorkspacePickerSelectButton_OnClick" />
+        </StackPanel>
+      </Grid>
+    </Border>
   </Grid>
   </ScrollViewer>
 </UserControl>

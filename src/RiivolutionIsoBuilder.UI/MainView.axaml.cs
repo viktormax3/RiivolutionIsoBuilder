@@ -19,6 +19,7 @@ public partial class MainView : UserControl
     private string? currentXmlFile;
     private RiivolutionDocument? currentXmlDocument;
     private int? currentXmlModIndex;
+    private TaskCompletionSource<string?>? workspacePickerTcs;
     private bool updatingXmlOptions;
     private bool compactLayout;
 
@@ -42,6 +43,8 @@ public partial class MainView : UserControl
         AppendLog($"Catalog: {paths.ResolveCatalogFile()}");
         AppendLog($"Mods: {paths.ResolveRiivDirectory()}");
         AppendLog($"Games folder: {paths.GamesDirectory}");
+        AppendLog($"Riivolution folder: {paths.WorkspaceRiivolutionDirectory}");
+        AppendLog($"GCT folder: {paths.WorkspaceGctDirectory}");
         AppendLog($"Imports folder: {paths.ImportDirectory}");
         AppendLog($"Tools folder: {paths.ResolveToolsDirectory()}");
         if (OperatingSystem.IsAndroid())
@@ -50,6 +53,9 @@ public partial class MainView : UserControl
                 ? "Android workspace: shared storage"
                 : $"Android workspace: app storage. Grant storage permission to use {paths.PublicAndroidWorkspace}.");
         }
+        ActionHintText.Text = OperatingSystem.IsAndroid()
+            ? $"Use {paths.RootDirectory}: games for ISO/WBFS, riivolution for XML mod folders, gct for GCT patches."
+            : "Scan starts automatically. Select a game, then choose a catalog mod or load XML/GCT.";
 
         AttachedToVisualTree += async (_, _) => await ScanAsync();
         SizeChanged += (_, _) => UpdateResponsiveLayout(Bounds.Width, Bounds.Height);
@@ -111,6 +117,21 @@ public partial class MainView : UserControl
         AppendLog("Cancellation requested.");
     }
 
+    private void WorkspacePickerSelectButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        CompleteWorkspacePicker(GetSelectedWorkspacePath());
+    }
+
+    private void WorkspacePickerCancelButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        CompleteWorkspacePicker(null);
+    }
+
+    private void WorkspacePickerList_OnDoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        CompleteWorkspacePicker(GetSelectedWorkspacePath());
+    }
+
     private void ThemeCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (Application.Current is null)
@@ -150,7 +171,7 @@ public partial class MainView : UserControl
             if (gameImages.Count == 0)
             {
                 EmptyStateText.Text = OperatingSystem.IsAndroid()
-                    ? $"No compatible images found in {paths.GamesDirectory}."
+                    ? $"No compatible images found in {paths.GamesDirectory}. Put ISO/WBFS files there, then scan."
                     : $"No compatible images found in {paths.GamesDirectory}. Use Browse ISO to select one manually.";
                 AppendLog("No compatible images found.");
             }
@@ -173,12 +194,13 @@ public partial class MainView : UserControl
 
     private async Task BrowseIsoAsync()
     {
-        var imagePath = await PickFileForToolAsync(
+        var imagePath = await PickWorkspaceOrExternalFileAsync(
             "Select Wii backup",
             new FilePickerFileType("Wii images")
             {
                 Patterns = BuilderDefaults.InputImageExtensions.Select(extension => $"*.{extension}").ToList()
             },
+            BuilderDefaults.InputImageExtensions.Select(extension => $".{extension}").ToArray(),
             "games");
         if (imagePath is null)
         {
@@ -221,9 +243,10 @@ public partial class MainView : UserControl
             return;
         }
 
-        var xmlFile = await PickFileForToolAsync(
+        var xmlFile = await PickWorkspaceOrExternalFileAsync(
             "Select Riivolution XML",
             new FilePickerFileType("Riivolution XML") { Patterns = ["*.xml"] },
+            [".xml"],
             "xml");
         if (xmlFile is null)
         {
@@ -254,9 +277,10 @@ public partial class MainView : UserControl
             return;
         }
 
-        var gctFile = await PickFileForToolAsync(
+        var gctFile = await PickWorkspaceOrExternalFileAsync(
             "Select GCT patch",
             new FilePickerFileType("Ocarina GCT") { Patterns = ["*.gct"] },
+            [".gct"],
             "gct");
         if (gctFile is null)
         {
@@ -512,6 +536,75 @@ public partial class MainView : UserControl
         StatusText.Text = busy ? "Working..." : "Ready";
     }
 
+    private async Task<string?> PickWorkspaceOrExternalFileAsync(
+        string title,
+        FilePickerFileType fileType,
+        IReadOnlyList<string> extensions,
+        string importKind)
+    {
+        if (OperatingSystem.IsAndroid() && paths.UsesSharedAndroidWorkspace)
+        {
+            return await PickWorkspaceFileAsync(title, importKind, extensions);
+        }
+
+        return await PickFileForToolAsync(title, fileType, importKind);
+    }
+
+    private async Task<string?> PickWorkspaceFileAsync(string title, string importKind, IReadOnlyList<string> extensions)
+    {
+        if (workspacePickerTcs is not null)
+        {
+            AppendLog("A workspace file picker is already open.");
+            return null;
+        }
+
+        var folder = GetWorkspaceFolder(importKind);
+        Directory.CreateDirectory(folder);
+        var files = Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+            .Where(file => extensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+            .OrderBy(file => Path.GetFileName(file), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (files.Count == 0)
+        {
+            AppendLog($"No files found in {folder}.");
+            EmptyStateText.Text = $"Put files in {folder}, then select again.";
+            return null;
+        }
+
+        workspacePickerTcs = new TaskCompletionSource<string?>();
+        WorkspacePickerTitle.Text = title;
+        WorkspacePickerFolder.Text = folder;
+        WorkspacePickerList.ItemsSource = files
+            .Select(file => new WorkspaceFileChoice(file, Path.GetRelativePath(folder, file)))
+            .ToList();
+        WorkspacePickerList.SelectedIndex = 0;
+        WorkspacePickerHost.IsVisible = true;
+
+        try
+        {
+            return await workspacePickerTcs.Task;
+        }
+        finally
+        {
+            WorkspacePickerHost.IsVisible = false;
+            WorkspacePickerList.ItemsSource = null;
+            workspacePickerTcs = null;
+        }
+    }
+
+    private string? GetSelectedWorkspacePath()
+    {
+        return WorkspacePickerList.SelectedItem is WorkspaceFileChoice choice
+            ? choice.Path
+            : null;
+    }
+
+    private void CompleteWorkspacePicker(string? path)
+    {
+        workspacePickerTcs?.TrySetResult(path);
+    }
+
     private async Task<string?> PickFileForToolAsync(string title, FilePickerFileType fileType, string importKind)
     {
         var topLevel = TopLevel.GetTopLevel(this);
@@ -571,10 +664,19 @@ public partial class MainView : UserControl
         return importKind switch
         {
             "games" => paths.GamesDirectory,
-            "xml" => paths.ResolveXmlDirectory(),
-            "gct" => paths.ResolveGctDirectory(),
+            "xml" => OperatingSystem.IsAndroid() && paths.UsesSharedAndroidWorkspace
+                ? paths.WorkspaceRiivolutionDirectory
+                : paths.ResolveXmlDirectory(),
+            "gct" => OperatingSystem.IsAndroid() && paths.UsesSharedAndroidWorkspace
+                ? paths.WorkspaceGctDirectory
+                : paths.ResolveGctDirectory(),
             _ => paths.RootDirectory
         };
+    }
+
+    private sealed record WorkspaceFileChoice(string Path, string DisplayName)
+    {
+        public override string ToString() => DisplayName;
     }
 
     private string? ResolvePickedWorkspaceFile(IStorageFile file, string importKind)

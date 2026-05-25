@@ -15,6 +15,8 @@ public sealed class PatcherPaths
         BannerDirectory = Path.Combine(DataDirectory, "banner");
         CatalogFile = Path.Combine(DataDirectory, "catalog", "mods.json");
         GamesDirectory = Path.Combine(rootDirectory, "games");
+        WorkspaceRiivolutionDirectory = Path.Combine(rootDirectory, "riivolution");
+        WorkspaceGctDirectory = Path.Combine(rootDirectory, "gct");
         ImportDirectory = Path.Combine(rootDirectory, "imports");
         OutputDirectory = Path.Combine(rootDirectory, "output");
         TempDirectory = Path.Combine(rootDirectory, "work");
@@ -30,6 +32,8 @@ public sealed class PatcherPaths
     public string BannerDirectory { get; }
     public string CatalogFile { get; }
     public string GamesDirectory { get; }
+    public string WorkspaceRiivolutionDirectory { get; }
+    public string WorkspaceGctDirectory { get; }
     public string ImportDirectory { get; }
     public string OutputDirectory { get; }
     public string TempDirectory { get; }
@@ -274,6 +278,8 @@ public sealed class PatcherPaths
         Directory.CreateDirectory(BannerDirectory);
         Directory.CreateDirectory(Path.GetDirectoryName(CatalogFile)!);
         Directory.CreateDirectory(GamesDirectory);
+        Directory.CreateDirectory(WorkspaceRiivolutionDirectory);
+        Directory.CreateDirectory(WorkspaceGctDirectory);
         Directory.CreateDirectory(ImportDirectory);
         Directory.CreateDirectory(Path.Combine(ImportDirectory, "games"));
         Directory.CreateDirectory(Path.Combine(ImportDirectory, "xml"));
