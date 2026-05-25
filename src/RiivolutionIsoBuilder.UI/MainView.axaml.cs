@@ -41,6 +41,7 @@ public partial class MainView : UserControl
         AppendLog($"Catalog: {paths.ResolveCatalogFile()}");
         AppendLog($"Mods: {paths.ResolveRiivDirectory()}");
         AppendLog($"Games folder: {paths.GamesDirectory}");
+        AppendLog($"Imports folder: {paths.ImportDirectory}");
         AppendLog($"Tools folder: {paths.ResolveToolsDirectory()}");
 
         AttachedToVisualTree += async (_, _) => await ScanAsync();
@@ -129,7 +130,9 @@ public partial class MainView : UserControl
             RefreshGameList();
             if (gameImages.Count == 0)
             {
-                EmptyStateText.Text = $"No compatible images found in {paths.GamesDirectory}. Use Browse ISO to select one manually.";
+                EmptyStateText.Text = OperatingSystem.IsAndroid()
+                    ? "No compatible images found in the app workspace. Use Browse ISO to import one."
+                    : $"No compatible images found in {paths.GamesDirectory}. Use Browse ISO to select one manually.";
                 AppendLog("No compatible images found.");
             }
             else
@@ -151,12 +154,13 @@ public partial class MainView : UserControl
 
     private async Task BrowseIsoAsync()
     {
-        var imagePath = await PickLocalFileAsync(
+        var imagePath = await PickFileForToolAsync(
             "Select Wii backup",
             new FilePickerFileType("Wii images")
             {
                 Patterns = BuilderDefaults.InputImageExtensions.Select(extension => $"*.{extension}").ToList()
-            });
+            },
+            "games");
         if (imagePath is null)
         {
             return;
@@ -198,9 +202,10 @@ public partial class MainView : UserControl
             return;
         }
 
-        var xmlFile = await PickLocalFileAsync(
+        var xmlFile = await PickFileForToolAsync(
             "Select Riivolution XML",
-            new FilePickerFileType("Riivolution XML") { Patterns = ["*.xml"] });
+            new FilePickerFileType("Riivolution XML") { Patterns = ["*.xml"] },
+            "xml");
         if (xmlFile is null)
         {
             return;
@@ -230,9 +235,10 @@ public partial class MainView : UserControl
             return;
         }
 
-        var gctFile = await PickLocalFileAsync(
+        var gctFile = await PickFileForToolAsync(
             "Select GCT patch",
-            new FilePickerFileType("Ocarina GCT") { Patterns = ["*.gct"] });
+            new FilePickerFileType("Ocarina GCT") { Patterns = ["*.gct"] },
+            "gct");
         if (gctFile is null)
         {
             return;
@@ -486,7 +492,7 @@ public partial class MainView : UserControl
         StatusText.Text = busy ? "Working..." : "Ready";
     }
 
-    private async Task<string?> PickLocalFileAsync(string title, FilePickerFileType fileType)
+    private async Task<string?> PickFileForToolAsync(string title, FilePickerFileType fileType, string importKind)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
@@ -501,14 +507,101 @@ public partial class MainView : UserControl
             AllowMultiple = false,
             FileTypeFilter = [fileType, FilePickerFileTypes.All]
         });
-        var path = files.FirstOrDefault()?.TryGetLocalPath();
-        if (string.IsNullOrWhiteSpace(path))
+
+        var file = files.FirstOrDefault();
+        if (file is null)
         {
-            AppendLog("ERROR: The selected file does not expose a local path.");
             return null;
         }
 
-        return path;
+        var localPath = file.TryGetLocalPath();
+        if (!OperatingSystem.IsAndroid() && !string.IsNullOrWhiteSpace(localPath))
+        {
+            return localPath;
+        }
+
+        if (!string.IsNullOrWhiteSpace(localPath) && IsInsideDirectory(localPath, paths.RootDirectory))
+        {
+            return localPath;
+        }
+
+        return await ImportPickedFileAsync(file, importKind);
+    }
+
+    private async Task<string?> ImportPickedFileAsync(IStorageFile file, string importKind)
+    {
+        var destinationDirectory = Path.Combine(paths.ImportDirectory, importKind);
+        Directory.CreateDirectory(destinationDirectory);
+
+        var fileName = SanitizeFileName(file.Name);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            fileName = $"selected-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        }
+
+        var destination = CreateUniqueImportPath(destinationDirectory, fileName);
+        AppendLog($"Importing selected file to workspace: {destination}");
+        var wasBusy = Progress.IsVisible;
+        if (!wasBusy)
+        {
+            SetBusy(true);
+            StatusText.Text = "Importing...";
+        }
+
+        try
+        {
+            await using var source = await file.OpenReadAsync();
+            await using var target = File.Create(destination);
+            await source.CopyToAsync(target);
+            AppendLog($"Import finished: {Path.GetFileName(destination)}");
+            return destination;
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"ERROR: Could not import selected file. {ex.Message}");
+            return null;
+        }
+        finally
+        {
+            if (!wasBusy)
+            {
+                SetBusy(false);
+            }
+        }
+    }
+
+    private static bool IsInsideDirectory(string path, string directory)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var fullDirectory = Path.GetFullPath(directory);
+        if (!fullDirectory.EndsWith(Path.DirectorySeparatorChar))
+        {
+            fullDirectory += Path.DirectorySeparatorChar;
+        }
+
+        return fullPath.StartsWith(fullDirectory, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        var cleaned = new string(name.Select(character =>
+            Path.GetInvalidFileNameChars().Contains(character) ? '_' : character).ToArray());
+        return Path.GetFileName(cleaned);
+    }
+
+    private static string CreateUniqueImportPath(string directory, string fileName)
+    {
+        var name = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+        var candidate = Path.Combine(directory, fileName);
+        var index = 1;
+        while (File.Exists(candidate))
+        {
+            candidate = Path.Combine(directory, $"{name}-{index}{extension}");
+            index++;
+        }
+
+        return candidate;
     }
 
     private void UpdateResponsiveLayout(double width, double height)

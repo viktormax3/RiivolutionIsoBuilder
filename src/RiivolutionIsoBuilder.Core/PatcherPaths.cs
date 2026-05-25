@@ -15,6 +15,7 @@ public sealed class PatcherPaths
         BannerDirectory = Path.Combine(DataDirectory, "banner");
         CatalogFile = Path.Combine(DataDirectory, "catalog", "mods.json");
         GamesDirectory = Path.Combine(rootDirectory, "games");
+        ImportDirectory = Path.Combine(rootDirectory, "imports");
         OutputDirectory = Path.Combine(rootDirectory, "output");
         TempDirectory = Path.Combine(rootDirectory, "work");
         EnsureWritableDirectories();
@@ -29,6 +30,7 @@ public sealed class PatcherPaths
     public string BannerDirectory { get; }
     public string CatalogFile { get; }
     public string GamesDirectory { get; }
+    public string ImportDirectory { get; }
     public string OutputDirectory { get; }
     public string TempDirectory { get; }
 
@@ -39,9 +41,20 @@ public sealed class PatcherPaths
     {
         get
         {
+            var importedGamesDirectory = Path.Combine(ImportDirectory, "games");
             if (Directory.Exists(GamesDirectory))
             {
                 yield return GamesDirectory;
+            }
+
+            if (Directory.Exists(importedGamesDirectory))
+            {
+                yield return importedGamesDirectory;
+            }
+
+            if (OperatingSystem.IsAndroid())
+            {
+                yield break;
             }
 
             yield return RootDirectory;
@@ -119,7 +132,17 @@ public sealed class PatcherPaths
 
     public string ResolveToolPath(string toolName)
     {
-        return Path.Combine(ResolveToolsDirectory(), ResolveToolExecutableName(toolName));
+        var directory = ResolveToolsDirectory();
+        foreach (var executableName in ResolveToolExecutableNames(toolName))
+        {
+            var candidate = Path.Combine(directory, executableName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return Path.Combine(directory, ResolveToolExecutableNames(toolName).First());
     }
 
     public string ResolveToolsDirectory()
@@ -186,7 +209,8 @@ public sealed class PatcherPaths
 
     private static bool ToolExists(string directory, string toolName)
     {
-        return File.Exists(Path.Combine(directory, ResolveToolExecutableName(toolName)));
+        return ResolveToolExecutableNames(toolName)
+            .Any(executableName => File.Exists(Path.Combine(directory, executableName)));
     }
 
     private static IEnumerable<string> PlatformToolDirectoryNames()
@@ -209,14 +233,26 @@ public sealed class PatcherPaths
         yield return os;
     }
 
-    private static string ResolveToolExecutableName(string toolName)
+    private static IEnumerable<string> ResolveToolExecutableNames(string toolName)
     {
         if (Path.GetExtension(toolName).Length > 0)
         {
-            return toolName;
+            yield return toolName;
+            yield break;
         }
 
-        return OperatingSystem.IsWindows() ? $"{toolName}.exe" : toolName;
+        if (OperatingSystem.IsWindows())
+        {
+            yield return $"{toolName}.exe";
+            yield break;
+        }
+
+        if (OperatingSystem.IsAndroid())
+        {
+            yield return $"lib{toolName}.so";
+        }
+
+        yield return toolName;
     }
 
     private void EnsureWritableDirectories()
@@ -229,6 +265,11 @@ public sealed class PatcherPaths
         Directory.CreateDirectory(BannerDirectory);
         Directory.CreateDirectory(Path.GetDirectoryName(CatalogFile)!);
         Directory.CreateDirectory(GamesDirectory);
+        Directory.CreateDirectory(ImportDirectory);
+        Directory.CreateDirectory(Path.Combine(ImportDirectory, "games"));
+        Directory.CreateDirectory(Path.Combine(ImportDirectory, "xml"));
+        Directory.CreateDirectory(Path.Combine(ImportDirectory, "gct"));
         Directory.CreateDirectory(OutputDirectory);
+        Directory.CreateDirectory(TempDirectory);
     }
 }

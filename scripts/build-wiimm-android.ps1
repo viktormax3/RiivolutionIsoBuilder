@@ -601,9 +601,16 @@ $wstrt = Build-WiimmTool `
 
 Copy-Item -Force $wit (Join-Path $outputFull "wit")
 Copy-Item -Force $wstrt (Join-Path $outputFull "wstrt")
+Copy-Item -Force $wit (Join-Path $outputFull "libwit.so")
+Copy-Item -Force $wstrt (Join-Path $outputFull "libwstrt.so")
 
 if (-not ($IsWindows -or $env:OS -eq "Windows_NT")) {
-    Invoke-Checked "chmod" @("+x", (Join-Path $outputFull "wit"), (Join-Path $outputFull "wstrt"))
+    Invoke-Checked "chmod" @(
+        "+x",
+        (Join-Path $outputFull "wit"),
+        (Join-Path $outputFull "wstrt"),
+        (Join-Path $outputFull "libwit.so"),
+        (Join-Path $outputFull "libwstrt.so"))
 }
 
 Write-Host "Android Wiimm tools copied to $outputFull"

@@ -27,6 +27,7 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
 
         var root = GetAppRootDirectory();
         System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_ROOT", root);
+        ConfigureNativeToolDirectory();
 
         try
         {
@@ -75,7 +76,12 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
 
     private string GetAppRootDirectory()
     {
-        var baseDirectory = FilesDir?.AbsolutePath;
+        var baseDirectory = GetExternalFilesDir(null)?.AbsolutePath;
+        if (string.IsNullOrWhiteSpace(baseDirectory))
+        {
+            baseDirectory = FilesDir?.AbsolutePath;
+        }
+
         if (string.IsNullOrWhiteSpace(baseDirectory))
         {
             baseDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
@@ -87,8 +93,15 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
     private void BootstrapBundledData(string root)
     {
         CopyAssetDirectory("data", Path.Combine(root, "data"));
-        MarkExecutable(Path.Combine(root, "data", "tools", "android-arm64", "wit"));
-        MarkExecutable(Path.Combine(root, "data", "tools", "android-arm64", "wstrt"));
+    }
+
+    private void ConfigureNativeToolDirectory()
+    {
+        var nativeLibraryDirectory = ApplicationInfo?.NativeLibraryDir;
+        if (!string.IsNullOrWhiteSpace(nativeLibraryDirectory))
+        {
+            System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_TOOLS", nativeLibraryDirectory);
+        }
     }
 
     private void CopyAssetDirectory(string assetPath, string destinationPath)
@@ -133,18 +146,4 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
         }
     }
 
-    private static void MarkExecutable(string path)
-    {
-        if (File.Exists(path))
-        {
-            try
-            {
-                _ = new Java.IO.File(path).SetExecutable(true, false);
-            }
-            catch (Exception ex)
-            {
-                Log.Warn(LogTag, $"Could not mark executable '{path}': {ex}");
-            }
-        }
-    }
 }
