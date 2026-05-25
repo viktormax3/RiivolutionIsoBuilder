@@ -6,6 +6,8 @@ param(
     [int]$ApiLevel = 24,
     [string]$AndroidNdkDirectory = "",
     [string]$Make = "",
+    [ValidateSet("App", "AllNoPng", "All")]
+    [string]$BuildSet = "App",
     [switch]$SkipHostPrep
 )
 
@@ -627,6 +629,54 @@ function Build-WiimmTool {
     return $toolPath
 }
 
+function Build-WiimmTools {
+    param(
+        [string]$ProjectDirectory,
+        [string]$HostUiTarget,
+        [string[]]$ToolNames,
+        [string]$Cc,
+        [string]$Cxx,
+        [string]$Strip,
+        [hashtable]$HostCompiler,
+        [string]$HostStrip,
+        [string]$SystemName,
+        [bool]$SkipHostPrep
+    )
+
+    $built = @{}
+    $hostPrepared = $SkipHostPrep
+    foreach ($toolName in $ToolNames) {
+        $tool = Build-WiimmTool `
+            -ProjectDirectory $ProjectDirectory `
+            -HostUiTarget $HostUiTarget `
+            -ToolName $toolName `
+            -Cc $Cc `
+            -Cxx $Cxx `
+            -Strip $Strip `
+            -HostCc $HostCompiler.Cc `
+            -HostStrip $HostStrip `
+            -SystemName $SystemName `
+            -SkipHostPrep:$hostPrepared
+        $built[$toolName] = $tool
+        $hostPrepared = $true
+    }
+
+    return $built
+}
+
+function Copy-AndroidToolOutputs {
+    param(
+        [hashtable]$Tools,
+        [string]$OutputDirectory
+    )
+
+    foreach ($name in $Tools.Keys | Sort-Object) {
+        $source = $Tools[$name]
+        Copy-Item -Force $source (Join-Path $OutputDirectory $name)
+        Copy-Item -Force $source (Join-Path $OutputDirectory "lib$name.so")
+    }
+}
+
 $wiimmRootFull = Resolve-FullPath $WiimmRoot
 $outputFull = Resolve-FullPath $OutputDirectory
 $ndk = Find-Ndk $AndroidNdkDirectory
@@ -673,42 +723,55 @@ $szsProject = Join-Path $wiimmRootFull "wiimms-szs-tools-master/project"
 
 New-Item -ItemType Directory -Force $outputFull | Out-Null
 
-$wit = Build-WiimmTool `
+$witTools = if ($BuildSet -in @("AllNoPng", "All")) { @("wit", "wwt", "wdf") } else { @("wit") }
+$szsTools = switch ($BuildSet) {
+    "All" {
+        @("wszst", "wbmgt", "wctct", "wimgt", "wkclt", "wkmpt", "wlect", "wmdlt", "wpatt", "wstrt")
+    }
+    "AllNoPng" {
+        # Android NDK does not ship libpng. These tools avoid XOBJ_IMAGE/XOBJ_LIB paths
+        # that include src/lib-image*.c and require png.h.
+        @("wbmgt", "wkclt", "wmdlt", "wpatt", "wstrt")
+    }
+    default {
+        @("wstrt")
+    }
+}
+
+$builtWitTools = Build-WiimmTools `
     -ProjectDirectory $witProject `
     -HostUiTarget "ui" `
-    -ToolName "wit" `
+    -ToolNames $witTools `
     -Cc $cc `
     -Cxx $cxx `
     -Strip $strip `
-    -HostCc $hostCompiler.Cc `
+    -HostCompiler $hostCompiler `
     -HostStrip $hostStrip `
     -SystemName $target.ToolFolder `
     -SkipHostPrep:$SkipHostPrep
 
-$wstrt = Build-WiimmTool `
+$builtSzsTools = Build-WiimmTools `
     -ProjectDirectory $szsProject `
     -HostUiTarget "run-ui" `
-    -ToolName "wstrt" `
+    -ToolNames $szsTools `
     -Cc $cc `
     -Cxx $cxx `
     -Strip $strip `
-    -HostCc $hostCompiler.Cc `
+    -HostCompiler $hostCompiler `
     -HostStrip $hostStrip `
     -SystemName $target.ToolFolder `
-    -SkipHostPrep:$true
+    -SkipHostPrep:$SkipHostPrep
 
-Copy-Item -Force $wit (Join-Path $outputFull "wit")
-Copy-Item -Force $wstrt (Join-Path $outputFull "wstrt")
-Copy-Item -Force $wit (Join-Path $outputFull "libwit.so")
-Copy-Item -Force $wstrt (Join-Path $outputFull "libwstrt.so")
+Copy-AndroidToolOutputs $builtWitTools $outputFull
+Copy-AndroidToolOutputs $builtSzsTools $outputFull
 
 if (-not ($IsWindows -or $env:OS -eq "Windows_NT")) {
-    Invoke-Checked "chmod" @(
-        "+x",
-        (Join-Path $outputFull "wit"),
-        (Join-Path $outputFull "wstrt"),
-        (Join-Path $outputFull "libwit.so"),
-        (Join-Path $outputFull "libwstrt.so"))
+    $outputs = @()
+    foreach ($toolName in @($witTools + $szsTools)) {
+        $outputs += (Join-Path $outputFull $toolName)
+        $outputs += (Join-Path $outputFull "lib$toolName.so")
+    }
+    Invoke-Checked "chmod" @("+x" + $outputs)
 }
 
-Write-Host "Android Wiimm tools copied to $outputFull"
+Write-Host "Android Wiimm $BuildSet tools copied to $outputFull"

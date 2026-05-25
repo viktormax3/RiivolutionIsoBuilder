@@ -27,7 +27,7 @@ dotnet workload install android
 ```
 
 - Android SDK and JDK 11 or newer.
-- Android-compatible `wit` and `wstrt` binaries for the device architecture.
+- Android-compatible Wiimm binaries for the device architecture.
 
 Avalonia's Android documentation recommends a separate Android project with a `MainActivity` inheriting from `AvaloniaMainActivity`. That is the structure used here.
 
@@ -67,10 +67,10 @@ Unsigned APK/AAB files are copied into `artifacts` when present.
 
 ## Native Wiimm Tools
 
-`wit` and `wstrt` come from different Wiimm projects:
+Android Wiimm tools come from two upstream projects:
 
-- `wit`: `wiimms-iso-tools`
-- `wstrt`: `wiimms-szs-tools`
+- WIT tools: `wiimms-iso-tools`
+- SZS tools: `wiimms-szs-tools`
 
 The source tree is intentionally kept outside git under ignored `wiimms/`. A local experimental build script can cross-compile Android binaries with the Android NDK:
 
@@ -91,10 +91,24 @@ and writes:
 ```text
 data/tools/android-arm64/
   wit
+  libwit.so
   wstrt
+  libwstrt.so
 ```
 
-Those binaries are packaged into the Android APK as assets. On first launch, the Android host copies bundled `data` files into the app-local `RiivolutionIsoBuilder/data` folder and marks `wit`/`wstrt` executable.
+The extensionless files are useful for local/device-side validation. The `lib*.so` copies are packaged into the Android APK as native libraries under `lib/arm64-v8a`, because Android allows execution from the app native library directory more reliably than from copied app data.
+
+The script supports three build sets:
+
+```powershell
+.\scripts\build-wiimm-android.ps1 -BuildSet App
+.\scripts\build-wiimm-android.ps1 -BuildSet AllNoPng
+.\scripts\build-wiimm-android.ps1 -BuildSet All
+```
+
+- `App`: builds the tools currently used by Riivolution ISO Builder: `wit`, `wstrt`.
+- `AllNoPng`: builds the broader Android-safe set that does not require libpng: `wit`, `wwt`, `wdf`, `wbmgt`, `wkclt`, `wmdlt`, `wpatt`, `wstrt`.
+- `All`: attempts the full WIT/SZS set, including tools that require image/libpng support. This needs an Android libpng integration before it can be considered reproducible.
 
 The script uses `ANDROID_NDK_ROOT`, `ANDROID_NDK_HOME`, or the newest NDK under `ANDROID_SDK_ROOT/ndk`. A custom NDK path can be passed explicitly:
 
@@ -118,7 +132,7 @@ Other ABIs can be targeted if needed:
 
 The Wiimm makefiles generate and run a small host helper named `gen-ui`. The script prepares generated UI files where needed, removes stale object files, patches Android's `funopen` path for Wiimm's line-buffer helper, avoids an Android `siginfo.h` macro collision, removes terminal-only `ncurses/tinfo` linker dependencies and terminal color probing for Android, and then cross-compiles only the final Android tools with the NDK clang toolchain. API 24 is the default target because Android exposes `funopen` there.
 
-`wstrt` is built as an Android-only single-tool target so it does not pull in SZS image tooling that requires libpng. That keeps the first Android backend focused on the commands used by Riivolution ISO Builder.
+Each tool is built as an Android-only single-tool target so the makefiles do not pull every sibling tool into the link. That keeps `App` and `AllNoPng` independent from SZS image tooling that requires libpng.
 
 ## Runtime Layout
 
@@ -162,8 +176,8 @@ The current backend still executes external `wit` and `wstrt` binaries. That is 
 
 - Desktop solution builds without requiring Android workload.
 - Android project is isolated and detected by `dotnet`.
-- Native `wit` and `wstrt` build locally as `ELF64` `AArch64` binaries and are copied to `data/tools/android-arm64`.
-- Debug Android APK builds locally and contains `assets/data/tools/android-arm64/wit`, `assets/data/tools/android-arm64/wstrt`, and `assets/data/tools/titles.txt`.
+- Native `wit`, `wwt`, `wdf`, `wbmgt`, `wkclt`, `wmdlt`, `wpatt`, and `wstrt` build locally as `ELF64` `AArch64` binaries with only Android system dependencies: `libc`, `libm`, and `libdl`.
+- The Android project packages every `data/tools/android-arm64/lib*.so` as `lib/arm64-v8a/*.so`.
 - Android build currently stops with `NETSDK1147` on machines without the Android workload, which is expected.
 - If the workload exists but the SDK/JDK does not, MSBuild reports `XA5300`; use `-InstallDependencies` or pass `-AndroidSdkDirectory` and `-JavaSdkDirectory`.
 

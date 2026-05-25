@@ -34,7 +34,6 @@
     <AndroidAsset Include="..\..\data\gct\**\*" Link="data/gct/%(RecursiveDir)%(Filename)%(Extension)" />
     <AndroidAsset Include="..\..\data\xml\**\*" Link="data/xml/%(RecursiveDir)%(Filename)%(Extension)" />
     <AndroidAsset Include="..\..\data\tools\titles.txt" Link="data/tools/titles.txt" />
-    <AndroidNativeLibrary Include="..\..\data\tools\android-arm64\libwit.so" Link="lib/arm64-v8a/libwit.so" />
-    <AndroidNativeLibrary Include="..\..\data\tools\android-arm64\libwstrt.so" Link="lib/arm64-v8a/libwstrt.so" />
+    <AndroidNativeLibrary Include="..\..\data\tools\android-arm64\lib*.so" Link="lib/arm64-v8a/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
