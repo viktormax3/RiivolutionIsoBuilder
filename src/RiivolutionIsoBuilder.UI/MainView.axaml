@@ -24,6 +24,7 @@
       <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="12" RowSpacing="10">
         <WrapPanel>
           <Button x:Name="ScanButton" Classes="secondary toolbar" Content="Scan games" Click="ScanButton_OnClick" />
+          <Button x:Name="StorageButton" Classes="secondary toolbar" Content="Storage permission" Click="StorageButton_OnClick" IsVisible="False" />
           <Button x:Name="BrowseButton" Classes="secondary toolbar" Content="Browse ISO" Click="BrowseButton_OnClick" />
           <Button x:Name="XmlButton" Classes="secondary toolbar" Content="Browse XML" Click="XmlButton_OnClick" />
           <Button x:Name="GctButton" Classes="secondary toolbar" Content="Browse GCT" Click="GctButton_OnClick" />

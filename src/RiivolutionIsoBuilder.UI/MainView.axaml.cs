@@ -36,6 +36,7 @@ public partial class MainView : UserControl
         ThemeCombo.SelectedIndex = 0;
         ExtensionCombo.ItemsSource = BuilderDefaults.OutputExtensions;
         ExtensionCombo.SelectedIndex = 0;
+        StorageButton.IsVisible = OperatingSystem.IsAndroid() && PlatformHooks.OpenAndroidStorageSettingsAsync is not null;
 
         AppendLog($"Project: {paths.RootDirectory}");
         AppendLog($"Catalog: {paths.ResolveCatalogFile()}");
@@ -43,6 +44,12 @@ public partial class MainView : UserControl
         AppendLog($"Games folder: {paths.GamesDirectory}");
         AppendLog($"Imports folder: {paths.ImportDirectory}");
         AppendLog($"Tools folder: {paths.ResolveToolsDirectory()}");
+        if (OperatingSystem.IsAndroid())
+        {
+            AppendLog(paths.UsesSharedAndroidWorkspace
+                ? "Android workspace: shared storage"
+                : $"Android workspace: app storage. Grant storage permission to use {paths.PublicAndroidWorkspace}.");
+        }
 
         AttachedToVisualTree += async (_, _) => await ScanAsync();
         SizeChanged += (_, _) => UpdateResponsiveLayout(Bounds.Width, Bounds.Height);
@@ -77,6 +84,18 @@ public partial class MainView : UserControl
     {
         LogBox.Text = "";
         AppendLog("Log cleared.");
+    }
+
+    private async void StorageButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (PlatformHooks.OpenAndroidStorageSettingsAsync is null)
+        {
+            AppendLog("Android storage settings are not available.");
+            return;
+        }
+
+        await PlatformHooks.OpenAndroidStorageSettingsAsync();
+        AppendLog("Android storage settings opened. Restart the app after granting file access.");
     }
 
     private void LogToggleButton_OnClick(object? sender, RoutedEventArgs e)
@@ -131,7 +150,7 @@ public partial class MainView : UserControl
             if (gameImages.Count == 0)
             {
                 EmptyStateText.Text = OperatingSystem.IsAndroid()
-                    ? "No compatible images found in the app workspace. Use Browse ISO to import one."
+                    ? $"No compatible images found in {paths.GamesDirectory}."
                     : $"No compatible images found in {paths.GamesDirectory}. Use Browse ISO to select one manually.";
                 AppendLog("No compatible images found.");
             }
@@ -477,6 +496,7 @@ public partial class MainView : UserControl
     private void SetBusy(bool busy)
     {
         ScanButton.IsEnabled = !busy;
+        StorageButton.IsEnabled = !busy;
         BrowseButton.IsEnabled = !busy;
         BuildButton.IsEnabled = !busy;
         XmlButton.IsEnabled = !busy;
@@ -520,12 +540,71 @@ public partial class MainView : UserControl
             return localPath;
         }
 
+        if (OperatingSystem.IsAndroid() && paths.UsesSharedAndroidWorkspace)
+        {
+            if (!string.IsNullOrWhiteSpace(localPath))
+            {
+                return localPath;
+            }
+
+            var resolvedPath = ResolvePickedWorkspaceFile(file, importKind);
+            if (resolvedPath is not null)
+            {
+                AppendLog($"Resolved Android document from workspace: {resolvedPath}");
+                return resolvedPath;
+            }
+
+            AppendLog($"ERROR: Android returned a document URI, not a real file path. Put the file inside {GetWorkspaceFolder(importKind)} and use Scan games.");
+            return null;
+        }
+
         if (!string.IsNullOrWhiteSpace(localPath) && IsInsideDirectory(localPath, paths.RootDirectory))
         {
             return localPath;
         }
 
         return await ImportPickedFileAsync(file, importKind);
+    }
+
+    private string GetWorkspaceFolder(string importKind)
+    {
+        return importKind switch
+        {
+            "games" => paths.GamesDirectory,
+            "xml" => paths.ResolveXmlDirectory(),
+            "gct" => paths.ResolveGctDirectory(),
+            _ => paths.RootDirectory
+        };
+    }
+
+    private string? ResolvePickedWorkspaceFile(IStorageFile file, string importKind)
+    {
+        var fileName = SanitizeFileName(file.Name);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        var workspaceFolder = GetWorkspaceFolder(importKind);
+        if (!Directory.Exists(workspaceFolder))
+        {
+            return null;
+        }
+
+        var matches = Directory.EnumerateFiles(workspaceFolder, fileName, SearchOption.AllDirectories)
+            .Take(2)
+            .ToList();
+        if (matches.Count == 1)
+        {
+            return matches[0];
+        }
+
+        if (matches.Count > 1)
+        {
+            AppendLog($"ERROR: Multiple files named {fileName} exist in {workspaceFolder}. Keep only one or scan/select the detected game.");
+        }
+
+        return null;
     }
 
     private async Task<string?> ImportPickedFileAsync(IStorageFile file, string importKind)

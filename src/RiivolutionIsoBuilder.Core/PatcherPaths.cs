@@ -37,6 +37,15 @@ public sealed class PatcherPaths
     public string Wit => ResolveToolPath("wit");
     public string Wstrt => ResolveToolPath("wstrt");
     public string TitlesFile => ResolveTitlesFile();
+    public bool UsesSharedAndroidWorkspace =>
+        OperatingSystem.IsAndroid()
+        && Environment.GetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_SHARED_WORKSPACE") == "1";
+
+    public string? PublicAndroidWorkspace =>
+        OperatingSystem.IsAndroid()
+            ? Environment.GetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_PUBLIC_ROOT")
+            : null;
+
     public IEnumerable<string> GameSearchDirectories
     {
         get

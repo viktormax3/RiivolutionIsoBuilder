@@ -1,7 +1,10 @@
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
+using Android.Net;
 using Android.OS;
 using Android.Runtime;
+using Android.Provider;
 using Android.Util;
 using Avalonia;
 using Avalonia.Android;
@@ -20,13 +23,15 @@ namespace RiivolutionIsoBuilder.Android;
 public sealed class MainActivity : AvaloniaMainActivity<App>
 {
     private const string LogTag = "RiivolutionIsoBuilder";
+    private string? activeRoot;
+    private bool created;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         RegisterExceptionLogging();
+        PlatformHooks.OpenAndroidStorageSettingsAsync = OpenAndroidStorageSettingsAsync;
 
-        var root = GetAppRootDirectory();
-        System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_ROOT", root);
+        var root = ConfigureWorkspaceEnvironment();
         ConfigureNativeToolDirectory();
 
         try
@@ -39,6 +44,34 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
         }
 
         base.OnCreate(savedInstanceState);
+        created = true;
+    }
+
+    protected override void OnResume()
+    {
+        base.OnResume();
+
+        if (!created)
+        {
+            return;
+        }
+
+        var previousRoot = activeRoot;
+        var root = ConfigureWorkspaceEnvironment();
+        if (!string.Equals(previousRoot, root, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                BootstrapBundledData(root);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(LogTag, ex.ToString());
+            }
+
+            Log.Info(LogTag, $"Workspace changed from '{previousRoot}' to '{root}'. Recreating activity.");
+            Recreate();
+        }
     }
 
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
@@ -76,6 +109,11 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
 
     private string GetAppRootDirectory()
     {
+        if (IsSharedStorageAvailable())
+        {
+            return GetPublicWorkspaceRoot();
+        }
+
         var baseDirectory = GetExternalFilesDir(null)?.AbsolutePath;
         if (string.IsNullOrWhiteSpace(baseDirectory))
         {
@@ -90,9 +128,55 @@ public sealed class MainActivity : AvaloniaMainActivity<App>
         return Path.Combine(baseDirectory, "RiivolutionIsoBuilder");
     }
 
+    private static bool IsSharedStorageAvailable()
+    {
+        return Build.VERSION.SdkInt < BuildVersionCodes.R || global::Android.OS.Environment.IsExternalStorageManager;
+    }
+
+    private static string GetPublicWorkspaceRoot()
+    {
+        var sharedStorage = global::Android.OS.Environment.ExternalStorageDirectory?.AbsolutePath;
+        if (string.IsNullOrWhiteSpace(sharedStorage))
+        {
+            sharedStorage = "/storage/emulated/0";
+        }
+
+        return Path.Combine(sharedStorage, "RiivolutionIsoBuilder");
+    }
+
+    private Task OpenAndroidStorageSettingsAsync()
+    {
+        try
+        {
+            var packageUri = global::Android.Net.Uri.Parse($"package:{PackageName}");
+            var intent = Build.VERSION.SdkInt >= BuildVersionCodes.R
+                ? new Intent(global::Android.Provider.Settings.ActionManageAppAllFilesAccessPermission, packageUri)
+                : new Intent(global::Android.Provider.Settings.ActionApplicationDetailsSettings, packageUri);
+            StartActivity(intent);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn(LogTag, $"Could not open all-files storage settings: {ex}");
+            var fallback = new Intent(global::Android.Provider.Settings.ActionManageAllFilesAccessPermission);
+            StartActivity(fallback);
+        }
+
+        return Task.CompletedTask;
+    }
+
     private void BootstrapBundledData(string root)
     {
         CopyAssetDirectory("data", Path.Combine(root, "data"));
+    }
+
+    private string ConfigureWorkspaceEnvironment()
+    {
+        var root = GetAppRootDirectory();
+        activeRoot = root;
+        System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_ROOT", root);
+        System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_PUBLIC_ROOT", GetPublicWorkspaceRoot());
+        System.Environment.SetEnvironmentVariable("RIIVOLUTION_ISO_BUILDER_SHARED_WORKSPACE", IsSharedStorageAvailable() ? "1" : "0");
+        return root;
     }
 
     private void ConfigureNativeToolDirectory()

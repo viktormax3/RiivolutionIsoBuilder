@@ -444,6 +444,21 @@ endif
     Set-Content -Path $file -Value $text -NoNewline
 }
 
+function Patch-AndroidFortifyPercentN([string]$ProjectDirectory) {
+    $file = Join-Path $ProjectDirectory "src/lib-sf.c"
+    if (-not (Test-Path $file)) {
+        return
+    }
+
+    $text = Get-Content -Raw $file
+    $old = 'snprintf(fbuf,sizeof(fbuf),"%u%n",slot,&fw);'
+    $new = 'fw = snprintf(fbuf,sizeof(fbuf),"%u",slot);'
+    if ($text.Contains($old)) {
+        $text = $text.Replace($old, $new)
+        Set-Content -Path $file -Value $text -NoNewline
+    }
+}
+
 function Complete-HostUiPrep([string]$ProjectDirectory) {
     $genUi = Join-Path $ProjectDirectory "gen-ui"
     $genUiExe = Join-Path $ProjectDirectory "gen-ui.exe"
@@ -484,6 +499,7 @@ function Build-WiimmTool {
     Patch-AndroidTerminalLibraries $ProjectDirectory
     Patch-AndroidTerminalColorDetection $ProjectDirectory
     Patch-AndroidSingleToolDependency $ProjectDirectory
+    Patch-AndroidFortifyPercentN $ProjectDirectory
 
     Clear-CrossObjects $ProjectDirectory
 
@@ -516,6 +532,7 @@ function Build-WiimmTool {
         "SYSTEM_LINUX=0",
         "SYSTEM2=$SystemName",
         "ANDROID_ONLY_TOOL=$ToolName",
+        "XFLAGS=-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0",
         "STATIC=0"
     )
 

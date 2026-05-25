@@ -372,13 +372,55 @@ public sealed class PatcherEngine
 
     private void VerifyFreeSpace(GameDefinition game)
     {
-        var root = Path.GetPathRoot(paths.RootDirectory)!;
         var required = game.RequiredFreeSpaceGb * 1024 * 1024 * 1024;
-        var free = new DriveInfo(root).AvailableFreeSpace;
+        var free = GetAvailableFreeSpace(paths.TempDirectory);
+        if (free is null)
+        {
+            log("No se pudo validar el espacio libre; continuando con el build.");
+            return;
+        }
+
         if (free < required)
         {
-            throw new InvalidOperationException($"Espacio insuficiente. Se requieren {game.RequiredFreeSpaceGb} GB libres.");
+            throw new InvalidOperationException(
+                $"Espacio insuficiente en {paths.TempDirectory}. Se requieren {game.RequiredFreeSpaceGb} GB libres.");
         }
+    }
+
+    private static long? GetAvailableFreeSpace(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var bestMatch = DriveInfo.GetDrives()
+            .Where(drive => drive.IsReady)
+            .Select(drive => new { Drive = drive, Root = Path.GetFullPath(drive.Name) })
+            .Where(candidate => IsInsideDirectory(fullPath, candidate.Root) || fullPath.Equals(candidate.Root.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(candidate => candidate.Root.Length)
+            .FirstOrDefault();
+
+        if (bestMatch is not null)
+        {
+            return bestMatch.Drive.AvailableFreeSpace;
+        }
+
+        try
+        {
+            return new DriveInfo(Path.GetPathRoot(fullPath)!).AvailableFreeSpace;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsInsideDirectory(string path, string directory)
+    {
+        var fullDirectory = directory;
+        if (!fullDirectory.EndsWith(Path.DirectorySeparatorChar))
+        {
+            fullDirectory += Path.DirectorySeparatorChar;
+        }
+
+        return path.StartsWith(fullDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void CopyDirectory(string source, string destination)
